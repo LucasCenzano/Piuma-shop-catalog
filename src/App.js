@@ -61,7 +61,7 @@ function App() {
             </nav>
 
             <main>
-                <Catalog bags={filteredBags} openModal={openModal} />
+                    <Catalog bags={filteredBags} openModal={openModal} selectedCategory={selectedCategory} />
             </main>
             
             {/* El modal siempre debe estar en la capa superior, por lo que es mejor dejarlo al final */}

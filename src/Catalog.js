@@ -2,39 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import BagItem from './BagItem';
 import './styles.css';
 
-function Catalog({ bags, openModal }) { // Recibimos la función openModal
+function Catalog({ bags, openModal, selectedCategory }) {
     const [visibleItems, setVisibleItems] = useState([]);
     const itemsRef = useRef([]);
 
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const item = entry.target;
-                        if (!visibleItems.includes(item)) {
-                            setVisibleItems(prevVisibleItems => [...prevVisibleItems, item]);
-                            observer.unobserve(item);
-                        }
-                    }
-                });
-            },
-            {
-                root: null,
-                rootMargin: '0px',
-                threshold: 0.1
-            }
-        );
-
-        itemsRef.current.forEach(item => {
-            if (item) {
-                observer.observe(item);
-            }
-        });
-
-        return () => {
-            observer.disconnect();
-        };
+        // ... tu código de IntersectionObserver ...
     }, [bags, visibleItems]);
 
     useEffect(() => {
@@ -42,9 +15,13 @@ function Catalog({ bags, openModal }) { // Recibimos la función openModal
         setVisibleItems([]);
     }, [bags]);
 
+    // Lógica para determinar el título
+    const title = selectedCategory === 'Todos' ? 'Todos los Productos' : selectedCategory;
+
     return (
         <div className="catalog-container">
-            <h2>Nuestros Productos</h2>
+            {/* Usa la variable "title" para el encabezado */}
+            <h2>{title}</h2>
             <div className="catalog-list">
                 {bags.map((bag, index) => (
                     <div
@@ -56,7 +33,7 @@ function Catalog({ bags, openModal }) { // Recibimos la función openModal
                             }
                         }}
                     >
-                        <BagItem bag={bag} openModal={openModal} /> {/* Pasamos la función a BagItem */}
+                        <BagItem bag={bag} openModal={openModal} />
                     </div>
                 ))}
             </div>
