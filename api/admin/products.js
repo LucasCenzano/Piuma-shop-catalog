@@ -1,8 +1,8 @@
-// api/admin/products.js - Versión con autenticación simplificada temporalmente
+// api/admin/products.js - Versión con autenticación corregida
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
   ssl: {
     rejectUnauthorized: false
   }
@@ -18,6 +18,48 @@ async function query(text, params) {
   }
 }
 
+// Función para validar el token
+function validateToken(authHeader) {
+  if (!authHeader) {
+    return { valid: false, error: 'No se proporcionó token' };
+  }
+
+  try {
+    let token = authHeader;
+    
+    // Remover prefijos si existen
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (authHeader.startsWith('bearer_')) {
+      // El token ya viene con bearer_ desde auth.js
+      token = authHeader;
+    }
+
+    // Para token con formato bearer_xxxxx
+    if (token.startsWith('bearer_')) {
+      const tokenData = token.substring(7);
+      const decoded = JSON.parse(Buffer.from(tokenData, 'base64').toString());
+      
+      // Verificar expiración
+      if (decoded.exp && decoded.exp < Date.now()) {
+        return { valid: false, error: 'Token expirado' };
+      }
+
+      // Verificar que sea admin
+      if (decoded.role !== 'admin') {
+        return { valid: false, error: 'Sin permisos de administrador' };
+      }
+
+      return { valid: true, user: decoded };
+    }
+
+    return { valid: false, error: 'Formato de token inválido' };
+  } catch (error) {
+    console.error('Error validando token:', error);
+    return { valid: false, error: 'Token inválido' };
+  }
+}
+
 module.exports = async function handler(req, res) {
   // Configurar CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -28,15 +70,21 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Verificación simple del token (temporal)
+  // Validar token
   const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: 'No autorizado - Token requerido' });
+  console.log('Authorization header recibido:', authHeader ? authHeader.substring(0, 30) + '...' : 'No presente');
+
+  const tokenValidation = validateToken(authHeader);
+  
+  if (!tokenValidation.valid) {
+    console.log('Token inválido:', tokenValidation.error);
+    return res.status(401).json({ 
+      error: 'No autorizado',
+      details: tokenValidation.error 
+    });
   }
 
-  // Por ahora, solo verificamos que exista un token
-  // En producción, deberías validarlo correctamente
-  console.log('Token recibido, continuando...');
+  console.log('Token válido, usuario:', tokenValidation.user.username);
 
   try {
     switch (req.method) {
@@ -53,7 +101,11 @@ module.exports = async function handler(req, res) {
           
           const product = result.rows[0];
           if (typeof product.images_url === 'string') {
-            product.images_url = JSON.parse(product.images_url);
+            try {
+              product.images_url = JSON.parse(product.images_url);
+            } catch (e) {
+              product.images_url = [];
+            }
           }
           
           return res.status(200).json(product);
@@ -69,11 +121,16 @@ module.exports = async function handler(req, res) {
           
           const products = result.rows.map(product => {
             if (typeof product.images_url === 'string') {
-              product.images_url = JSON.parse(product.images_url);
+              try {
+                product.images_url = JSON.parse(product.images_url);
+              } catch (e) {
+                product.images_url = [];
+              }
             }
             return product;
           });
           
+          console.log(`Enviando ${products.length} productos`);
           return res.status(200).json(products);
         }
 
@@ -84,6 +141,7 @@ module.exports = async function handler(req, res) {
           return res.status(400).json({ error: 'Nombre y categoría son requeridos' });
         }
 
+        // Obtener el siguiente ID disponible
         const maxIdResult = await query('SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM products');
         const nextId = maxIdResult.rows[0].next_id;
 
@@ -102,7 +160,11 @@ module.exports = async function handler(req, res) {
 
         const newProduct = createResult.rows[0];
         if (typeof newProduct.images_url === 'string') {
-          newProduct.images_url = JSON.parse(newProduct.images_url);
+          try {
+            newProduct.images_url = JSON.parse(newProduct.images_url);
+          } catch (e) {
+            newProduct.images_url = [];
+          }
         }
 
         return res.status(201).json({
@@ -164,7 +226,11 @@ module.exports = async function handler(req, res) {
 
         const updatedProduct = updateResult.rows[0];
         if (typeof updatedProduct.images_url === 'string') {
-          updatedProduct.images_url = JSON.parse(updatedProduct.images_url);
+          try {
+            updatedProduct.images_url = JSON.parse(updatedProduct.images_url);
+          } catch (e) {
+            updatedProduct.images_url = [];
+          }
         }
 
         return res.status(200).json({

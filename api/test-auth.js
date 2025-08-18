@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
 
   const authHeader = req.headers.authorization;
   
-  console.log('Headers recibidos:', req.headers);
+  console.log('Headers recibidos:', Object.keys(req.headers));
   console.log('Auth header:', authHeader);
 
   if (!authHeader) {
@@ -26,10 +26,12 @@ module.exports = async function handler(req, res) {
     let token;
     let tokenType;
     
+    // Manejar diferentes formatos de token
     if (authHeader.startsWith('Bearer ')) {
       token = authHeader.substring(7);
       tokenType = 'Bearer';
     } else if (authHeader.startsWith('bearer_')) {
+      // Este es el formato que usamos
       token = authHeader.substring(7);
       tokenType = 'bearer_';
     } else {
@@ -40,14 +42,17 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Intentar decodificar
+    // Intentar decodificar el token
     const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
     
+    // Verificar expiración
+    const isExpired = decoded.exp && decoded.exp < Date.now();
+    
     return res.status(200).json({
-      authenticated: true,
+      authenticated: !isExpired,
       tokenType,
       user: decoded,
-      expired: decoded.exp && decoded.exp < Date.now(),
+      expired: isExpired,
       expiresAt: decoded.exp ? new Date(decoded.exp).toISOString() : 'no expiration'
     });
     
@@ -58,4 +63,4 @@ module.exports = async function handler(req, res) {
       authHeader: authHeader.substring(0, 50) + '...'
     });
   }
-}
+};

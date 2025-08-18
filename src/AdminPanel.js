@@ -1,20 +1,30 @@
-// src/AdminPanel.js - Panel completo de administración
+// AdminPanel.js - Panel de administración corregido
 import React, { useState, useEffect } from 'react';
 import authService from './authService';
+import './AdminPanel.css';
 
-function AdminPanel({ onLogout }) {
+const AdminPanel = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(null);
-  const [filter, setFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
   const [error, setError] = useState(null);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    price: '',
+    category: '',
+    inStock: true,
+    imagesUrl: []
+  });
+  const [showAddForm, setShowAddForm] = useState(false);
 
-  const categories = ['Bandoleras', 'Carteras', 'Billeteras', 'Riñoneras', 'Mochilas', 'Porta Celulares'];
-
+  // Verificar autenticación al cargar
   useEffect(() => {
+    if (!authService.isAuthenticated()) {
+      setError('No tienes permisos para acceder a esta página');
+      setLoading(false);
+      return;
+    }
+
     loadProducts();
   }, []);
 
@@ -22,623 +32,354 @@ function AdminPanel({ onLogout }) {
     try {
       setLoading(true);
       setError(null);
-      const data = await authService.getProducts();
-      setProducts(data);
-    } catch (err) {
-      console.error('Error cargando productos:', err);
-      setError('Error al cargar productos');
+      
+      console.log('Cargando productos...');
+      const productsData = await authService.getProducts();
+      setProducts(productsData);
+      console.log('Productos cargados exitosamente');
+    } catch (error) {
+      console.error('Error cargando productos:', error);
+      
+      if (error.message.includes('Sesión expirada') || error.message.includes('No autorizado')) {
+        setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+        // Opcional: redirigir al login
+        // window.location.href = '/login';
+      } else {
+        setError(`Error cargando productos: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleStock = async (productId, currentStock) => {
+  const handleCreateProduct = async (e) => {
+    e.preventDefault();
+    
+    if (!newProduct.name || !newProduct.category) {
+      alert('Nombre y categoría son requeridos');
+      return;
+    }
+
     try {
-      setUpdating(productId);
-      await authService.updateProduct({ id: productId, inStock: !currentStock });
-      setProducts(products.map(p => 
-        p.id === productId ? { ...p, in_stock: !currentStock } : p
-      ));
+      setLoading(true);
+      await authService.createProduct(newProduct);
+      
+      // Limpiar formulario
+      setNewProduct({
+        name: '',
+        price: '',
+        category: '',
+        inStock: true,
+        imagesUrl: []
+      });
+      setShowAddForm(false);
+      
+      // Recargar productos
+      await loadProducts();
+      alert('Producto creado exitosamente');
     } catch (error) {
-      console.error('Error actualizando stock:', error);
-      setError('Error al actualizar el stock');
+      console.error('Error creando producto:', error);
+      alert(`Error creando producto: ${error.message}`);
     } finally {
-      setUpdating(null);
+      setLoading(false);
     }
   };
 
-  const deleteProduct = async (productId) => {
+  const handleUpdateProduct = async (e) => {
+    e.preventDefault();
+    
+    if (!editingProduct) return;
+
+    try {
+      setLoading(true);
+      await authService.updateProduct(editingProduct);
+      
+      setEditingProduct(null);
+      await loadProducts();
+      alert('Producto actualizado exitosamente');
+    } catch (error) {
+      console.error('Error actualizando producto:', error);
+      alert(`Error actualizando producto: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
       return;
     }
 
     try {
-      setUpdating(productId);
+      setLoading(true);
       await authService.deleteProduct(productId);
-      setProducts(products.filter(p => p.id !== productId));
+      await loadProducts();
+      alert('Producto eliminado exitosamente');
     } catch (error) {
       console.error('Error eliminando producto:', error);
-      setError('Error al eliminar el producto');
-    } finally {
-      setUpdating(null);
-    }
-  };
-
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = 
-      filter === 'all' || 
-      (filter === 'in_stock' && product.in_stock) ||
-      (filter === 'out_of_stock' && !product.in_stock);
-    
-    return matchesSearch && matchesFilter;
-  });
-
-  const stats = {
-    total: products.length,
-    inStock: products.filter(p => p.in_stock).length,
-    outOfStock: products.filter(p => !p.in_stock).length
-  };
-
-  const currentUser = authService.getCurrentUser();
-
-  if (loading) {
-    return (
-      <div style={{ 
-        padding: '2rem', 
-        textAlign: 'center',
-        fontFamily: 'Arial, sans-serif' 
-      }}>
-        Cargando panel de administración...
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ 
-      padding: '2rem', 
-      maxWidth: '1400px', 
-      margin: '0 auto',
-      fontFamily: 'Arial, sans-serif',
-      backgroundColor: '#f8f9fa',
-      minHeight: '100vh'
-    }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '2rem',
-        backgroundColor: 'white',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <div>
-          <h1 style={{ color: '#333', margin: '0 0 0.5rem' }}>
-            Panel de Administración - Piuma
-          </h1>
-          <p style={{ color: '#666', margin: 0 }}>
-            Bienvenido, {currentUser?.username || 'Admin'}
-          </p>
-        </div>
-        <button
-          onClick={onLogout}
-          style={{
-            padding: '0.75rem 1.5rem',
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: '500'
-          }}
-        >
-          Cerrar Sesión
-        </button>
-      </div>
-
-      {/* Estadísticas */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '1rem',
-        marginBottom: '2rem'
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          textAlign: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <h3 style={{ margin: '0 0 0.5rem', color: '#333' }}>Total Productos</h3>
-          <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', color: '#007bff' }}>
-            {stats.total}
-          </p>
-        </div>
-        
-        <div style={{
-          backgroundColor: 'white',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          textAlign: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          border: '2px solid #d4edda'
-        }}>
-          <h3 style={{ margin: '0 0 0.5rem', color: '#333' }}>En Stock</h3>
-          <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', color: '#28a745' }}>
-            {stats.inStock}
-          </p>
-        </div>
-        
-        <div style={{
-          backgroundColor: 'white',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          textAlign: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          border: '2px solid #f8d7da'
-        }}>
-          <h3 style={{ margin: '0 0 0.5rem', color: '#333' }}>Sin Stock</h3>
-          <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 'bold', color: '#dc3545' }}>
-            {stats.outOfStock}
-          </p>
-        </div>
-      </div>
-
-      {/* Controles */}
-      <div style={{
-        backgroundColor: 'white',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        marginBottom: '2rem',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{
-          display: 'flex',
-          gap: '1rem',
-          marginBottom: '1rem',
-          flexWrap: 'wrap',
-          alignItems: 'center'
-        }}>
-          <input
-            type="text"
-            placeholder="Buscar productos..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              flex: 1,
-              minWidth: '200px',
-              padding: '0.75rem',
-              border: '2px solid #e1e1e1',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              outline: 'none'
-            }}
-          />
-          
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            style={{
-              padding: '0.75rem',
-              border: '2px solid #e1e1e1',
-              borderRadius: '8px',
-              backgroundColor: 'white',
-              fontSize: '1rem',
-              outline: 'none'
-            }}
-          >
-            <option value="all">Todos los productos</option>
-            <option value="in_stock">Solo en stock</option>
-            <option value="out_of_stock">Solo sin stock</option>
-          </select>
-          
-          <button
-            onClick={loadProducts}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: '#17a2b8',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '500'
-            }}
-          >
-            Actualizar
-          </button>
-          
-          <button
-            onClick={() => setShowCreateModal(true)}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '500'
-            }}
-          >
-            + Nuevo Producto
-          </button>
-        </div>
-      </div>
-
-      {error && (
-        <div style={{
-          backgroundColor: '#f8d7da',
-          color: '#721c24',
-          padding: '1rem',
-          marginBottom: '2rem',
-          border: '1px solid #f5c6cb',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          {error}
-          <button 
-            onClick={() => setError(null)}
-            style={{ 
-              marginLeft: '1rem', 
-              padding: '0.25rem 0.5rem',
-              backgroundColor: 'transparent',
-              border: '1px solid #721c24',
-              borderRadius: '4px',
-              color: '#721c24',
-              cursor: 'pointer'
-            }}
-          >
-            Cerrar
-          </button>
-        </div>
-      )}
-
-      {/* Lista de productos */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-        gap: '1.5rem'
-      }}>
-        {filteredProducts.map(product => (
-          <div
-            key={product.id}
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              border: `2px solid ${product.in_stock ? '#d4edda' : '#f8d7da'}`
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ margin: '0 0 0.5rem', color: '#333', fontSize: '1.25rem' }}>
-                  {product.name}
-                </h4>
-                <p style={{ margin: '0 0 0.5rem', color: '#666', fontSize: '0.9rem' }}>
-                  <strong>Categoría:</strong> {product.category}
-                </p>
-                <p style={{ margin: '0 0 0.5rem', fontWeight: 'bold', color: '#333', fontSize: '1.1rem' }}>
-                  <strong>Precio:</strong> {product.price || 'No definido'}
-                </p>
-                <p style={{ margin: '0 0 1rem', color: '#666', fontSize: '0.85rem' }}>
-                  <strong>ID:</strong> {product.id}
-                </p>
-              </div>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '1rem',
-              fontSize: '0.9rem'
-            }}>
-              <span style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor: product.in_stock ? '#28a745' : '#dc3545',
-                marginRight: '0.5rem'
-              }}></span>
-              <span style={{ color: product.in_stock ? '#28a745' : '#dc3545', fontWeight: '500' }}>
-                {product.in_stock ? 'En Stock' : 'Sin Stock'}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => toggleStock(product.id, product.in_stock)}
-                disabled={updating === product.id}
-                style={{
-                  flex: 1,
-                  padding: '0.5rem',
-                  backgroundColor: product.in_stock ? '#ffc107' : '#28a745',
-                  color: product.in_stock ? '#000' : 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: updating === product.id ? 'not-allowed' : 'pointer',
-                  opacity: updating === product.id ? 0.7 : 1,
-                  fontSize: '0.9rem',
-                  fontWeight: '500'
-                }}
-              >
-                {updating === product.id ? 'Actualizando...' : 
-                 (product.in_stock ? 'Quitar Stock' : 'Agregar Stock')}
-              </button>
-              
-              <button
-                onClick={() => setEditingProduct(product)}
-                style={{
-                  flex: 1,
-                  padding: '0.5rem',
-                  backgroundColor: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  fontWeight: '500'
-                }}
-              >
-                Editar
-              </button>
-              
-              <button
-                onClick={() => deleteProduct(product.id)}
-                disabled={updating === product.id}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: updating === product.id ? 'not-allowed' : 'pointer',
-                  opacity: updating === product.id ? 0.7 : 1,
-                  fontSize: '0.9rem',
-                  fontWeight: '500'
-                }}
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredProducts.length === 0 && !loading && (
-        <div style={{
-          backgroundColor: 'white',
-          textAlign: 'center',
-          padding: '3rem',
-          borderRadius: '12px',
-          color: '#666',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <p style={{ fontSize: '1.2rem', margin: 0 }}>
-            No se encontraron productos que coincidan con los filtros.
-          </p>
-        </div>
-      )}
-
-      {/* Modales */}
-      {showCreateModal && (
-        <ProductModal
-          product={null}
-          categories={categories}
-          onSave={async (productData) => {
-            try {
-              await authService.createProduct(productData);
-              setShowCreateModal(false);
-              loadProducts();
-            } catch (error) {
-              setError('Error al crear el producto');
-            }
-          }}
-          onCancel={() => setShowCreateModal(false)}
-        />
-      )}
-
-      {editingProduct && (
-        <ProductModal
-          product={editingProduct}
-          categories={categories}
-          onSave={async (productData) => {
-            try {
-              await authService.updateProduct({ ...productData, id: editingProduct.id });
-              setEditingProduct(null);
-              loadProducts();
-            } catch (error) {
-              setError('Error al actualizar el producto');
-            }
-          }}
-          onCancel={() => setEditingProduct(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-// Componente Modal para crear/editar productos
-function ProductModal({ product, categories, onSave, onCancel }) {
-  const [formData, setFormData] = useState({
-    name: product?.name || '',
-    price: product?.price || '',
-    category: product?.category || categories[0],
-    inStock: product?.in_stock !== undefined ? product.in_stock : true,
-    imagesUrl: product?.images_url || []
-  });
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await onSave(formData);
+      alert(`Error eliminando producto: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setFormData({
-      ...formData,
-      [e.target.name]: value
+  const handleToggleStock = async (product) => {
+    try {
+      const updatedProduct = {
+        ...product,
+        inStock: !product.in_stock
+      };
+      
+      await authService.updateProduct(updatedProduct);
+      await loadProducts();
+    } catch (error) {
+      console.error('Error actualizando stock:', error);
+      alert(`Error actualizando stock: ${error.message}`);
+    }
+  };
+
+  const startEditing = (product) => {
+    setEditingProduct({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      category: product.category,
+      inStock: product.in_stock,
+      imagesUrl: product.images_url || []
     });
   };
 
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '2rem',
-        borderRadius: '12px',
-        width: '90%',
-        maxWidth: '500px',
-        maxHeight: '90vh',
-        overflow: 'auto'
-      }}>
-        <h2 style={{ marginTop: 0, color: '#333' }}>
-          {product ? 'Editar Producto' : 'Nuevo Producto'}
-        </h2>
+  const handleLogout = () => {
+    authService.logout();
+    window.location.reload();
+  };
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-              Nombre del Producto *
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '2px solid #e1e1e1',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-              Precio
-            </label>
-            <input
-              type="text"
-              name="price"
-              value={formData.price}
-              onChange={handleChange}
-              placeholder="Ej: $25.000"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '2px solid #e1e1e1',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-              Categoría *
-            </label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '2px solid #e1e1e1',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                outline: 'none',
-                backgroundColor: 'white',
-                boxSizing: 'border-box'
-              }}
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-
-          <div style={{ marginBottom: '2rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', fontWeight: '500' }}>
-              <input
-                type="checkbox"
-                name="inStock"
-                checked={formData.inStock}
-                onChange={handleChange}
-                style={{ marginRight: '0.5rem' }}
-              />
-              Producto en stock
-            </label>
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button
-              type="button"
-              onClick={onCancel}
-              style={{
-                flex: 1,
-                padding: '0.75rem',
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              Cancelar
-            </button>
-            
-            <button
-              type="submit"
-              disabled={loading || !formData.name}
-              style={{
-                flex: 1,
-                padding: '0.75rem',
-                backgroundColor: loading ? '#6c757d' : '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
-                opacity: loading ? 0.7 : 1
-              }}
-            >
-              {loading ? 'Guardando...' : 'Guardar'}
-            </button>
-          </div>
-        </form>
+  // Estados de carga y error
+  if (error && error.includes('No tienes permisos')) {
+    return (
+      <div className="admin-panel">
+        <div className="error-container">
+          <h2>Acceso Denegado</h2>
+          <p>{error}</p>
+          <button onClick={() => window.location.href = '/login'}>
+            Ir al Login
+          </button>
+        </div>
       </div>
+    );
+  }
+
+  if (loading && products.length === 0) {
+    return (
+      <div className="admin-panel">
+        <div className="loading">
+          <h2>Cargando panel de administración...</h2>
+          <p>Obteniendo productos de la base de datos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-panel">
+      <header className="admin-header">
+        <h1>Panel de Administración - Piuma</h1>
+        <div className="admin-actions">
+          <button 
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="btn-primary"
+          >
+            {showAddForm ? 'Cancelar' : 'Agregar Producto'}
+          </button>
+          <button onClick={handleLogout} className="btn-secondary">
+            Cerrar Sesión
+          </button>
+        </div>
+      </header>
+
+      {error && (
+        <div className="error-message">
+          <p>{error}</p>
+          <button onClick={loadProducts}>Reintentar</button>
+        </div>
+      )}
+
+      {/* Formulario para agregar producto */}
+      {showAddForm && (
+        <div className="product-form">
+          <h3>Agregar Nuevo Producto</h3>
+          <form onSubmit={handleCreateProduct}>
+            <div className="form-row">
+              <input
+                type="text"
+                placeholder="Nombre del producto"
+                value={newProduct.name}
+                onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Precio (ej: $25.000)"
+                value={newProduct.price}
+                onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
+              />
+            </div>
+            <div className="form-row">
+              <select
+                value={newProduct.category}
+                onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
+                required
+              >
+                <option value="">Seleccionar categoría</option>
+                <option value="Bandoleras">Bandoleras</option>
+                <option value="Carteras">Carteras</option>
+                <option value="Billeteras">Billeteras</option>
+                <option value="Mochilas">Mochilas</option>
+              </select>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={newProduct.inStock}
+                  onChange={(e) => setNewProduct({...newProduct, inStock: e.target.checked})}
+                />
+                En Stock
+              </label>
+            </div>
+            <div className="form-actions">
+              <button type="submit" disabled={loading}>
+                {loading ? 'Creando...' : 'Crear Producto'}
+              </button>
+              <button type="button" onClick={() => setShowAddForm(false)}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Formulario de edición */}
+      {editingProduct && (
+        <div className="product-form editing">
+          <h3>Editar Producto</h3>
+          <form onSubmit={handleUpdateProduct}>
+            <div className="form-row">
+              <input
+                type="text"
+                placeholder="Nombre del producto"
+                value={editingProduct.name}
+                onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Precio (ej: $25.000)"
+                value={editingProduct.price}
+                onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value})}
+              />
+            </div>
+            <div className="form-row">
+              <select
+                value={editingProduct.category}
+                onChange={(e) => setEditingProduct({...editingProduct, category: e.target.value})}
+                required
+              >
+                <option value="Bandoleras">Bandoleras</option>
+                <option value="Carteras">Carteras</option>
+                <option value="Billeteras">Billeteras</option>
+                <option value="Mochilas">Mochilas</option>
+              </select>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={editingProduct.inStock}
+                  onChange={(e) => setEditingProduct({...editingProduct, inStock: e.target.checked})}
+                />
+                En Stock
+              </label>
+            </div>
+            <div className="form-actions">
+              <button type="submit" disabled={loading}>
+                {loading ? 'Actualizando...' : 'Actualizar'}
+              </button>
+              <button type="button" onClick={() => setEditingProduct(null)}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Lista de productos */}
+      <div className="products-section">
+        <h2>Productos ({products.length})</h2>
+        
+        {products.length === 0 ? (
+          <div className="no-products">
+            <p>No hay productos cargados</p>
+            <button onClick={loadProducts}>Recargar</button>
+          </div>
+        ) : (
+          <div className="products-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Precio</th>
+                  <th>Categoría</th>
+                  <th>Stock</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map(product => (
+                  <tr key={product.id}>
+                    <td>{product.id}</td>
+                    <td>{product.name}</td>
+                    <td>{product.price}</td>
+                    <td>{product.category}</td>
+                    <td>
+                      <button
+                        className={`stock-toggle ${product.in_stock ? 'in-stock' : 'out-stock'}`}
+                        onClick={() => handleToggleStock(product)}
+                        disabled={loading}
+                      >
+                        {product.in_stock ? '✅ En Stock' : '❌ Sin Stock'}
+                      </button>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          onClick={() => startEditing(product)}
+                          className="btn-edit"
+                          disabled={loading}
+                        >
+                          ✏️ Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(product.id)}
+                          className="btn-delete"
+                          disabled={loading}
+                        >
+                          🗑️ Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {loading && products.length > 0 && (
+        <div className="loading-overlay">
+          <p>Procesando...</p>
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default AdminPanel;
