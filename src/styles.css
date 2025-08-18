@@ -10,7 +10,9 @@ body {
 
 /* Estilos para el encabezado principal (el nombre de tu tienda) */
 .App-header h1 {
-    font-family: 'Didot', serif;
+    font-family: 'Playfair Display', serif;
+    font-weight: 400; /* Regular, evita bold pesado */
+    font-style: italic; /* Agrega un toque elegante */
     font-size: 2.5rem; /* Ajusta el tamaño como prefieras */
     text-align: center;
 }
@@ -114,23 +116,15 @@ body {
     background-color: #e6e3d4;;
 }
 
-/* Ocultar el botón de hamburguesa en pantallas grandes si no lo necesitas */
-@media (min-width: 769px) {
-    .hamburger-menu-btn {
-        display: none;
-    }
-    .menu-list {
-        position: static;
-        flex-direction: row;
-        gap: 20px;
-        max-height: none;
-        overflow: visible;
-        padding: 0;
-    }
-    .menu-item button {
-        text-align: center;
-        width: auto;
-    }
+/* Estilos para las sugerencias de categoría */
+.suggestion-item.suggestion-category {
+    font-weight: bold; /* Hacerlas más prominentes */
+    color: #555; /* Un color ligeramente diferente */
+    background-color: #f0f0e0; /* Un fondo sutilmente diferente */
+}
+
+.suggestion-item.suggestion-category:hover {
+    background-color: #e6e6d6; /* Un hover que coincida */
 }
 
 /* Estilos para la galería de imágenes */
@@ -264,4 +258,123 @@ body {
 
 .social-icon:hover {
     color: #333; /* Color más oscuro al pasar el ratón */
+}
+
+/* === AÑADIR ESTOS NUEVOS ESTILOS AL FINAL DE TU ARCHIVO styles.css === */
+
+/* Contenedor para el contenido de la barra de navegación */
+.nav-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 60px;
+    padding: 0 1rem; /* Ajusta el padding para que no esté pegado a los bordes */
+}
+
+/* El menú que se despliega (ajuste para que no interfiera con el nuevo layout) */
+.menu-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    /* Empieza desde la izquierda, cubriendo el ancho completo */
+    left: 0;
+    width: 100%;
+    background-color: #e6e3d4;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+}
+
+/* Ajuste al padding de la barra de navegación principal */
+.main-nav {
+    min-height: 60px; /* o el valor que tengas en móvil */
+    padding: 0; /* El padding ahora lo controla .nav-content */
+}
+.search-container {
+    position: relative;
+    display: flex; /* Coloca input e ícono en línea */
+    align-items: center; /* Centra verticalmente */
+    gap: 10px; /* Separación entre input y ícono */
+    padding: 1rem 0;
+}
+
+.search-container input {
+    flex: 1; /* Ocupa el espacio disponible */
+    padding: 10px 15px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.search-container input:focus {
+    border-color: #a2a2a2;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Icono de búsqueda */
+.search-container .search-icon {
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.2s ease;
+}
+
+.search-container .search-icon:hover {
+    color: #333;
+}
+
+
+/* Estilos para la lista de sugerencias */
+.suggestions-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    position: absolute; /* Posiciona la lista debajo del input */
+    top: 100%; /* La ubica justo debajo del input */
+    left: 0;
+    width: 100%; /* Mismo ancho que el input */
+    background-color: #ffffff; /* Fondo blanco */
+    border: 1px solid #ddd;
+    border-top: none; /* Sin borde superior para que se una al input */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 500; /* Asegura que esté por encima de otros elementos */
+    max-height: 200px; /* Altura máxima para la lista */
+    overflow-y: auto; /* Scroll si hay muchas sugerencias */
+    border-radius: 0 0 8px 8px; /* Bordes redondeados en la parte inferior */
+}
+
+.suggestion-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    color: #333;
+    border-bottom: 1px solid #eee; /* Separador entre ítems */
+}
+
+.suggestion-item:last-child {
+    border-bottom: none; /* El último ítem no tiene separador */
+}
+
+.suggestion-item:hover {
+    background-color: #f0f0f0; /* Fondo gris claro al pasar el ratón */
+}
+
+/* Ajuste para pantallas grandes */
+@media (min-width: 769px) {
+    .search-container {
+        margin-left: auto;
+        padding: 1rem 0;
+    }
+    .suggestions-list {
+        width: 180px; /* Ajusta el ancho para que coincida con el input expandido */
+    }
 }
