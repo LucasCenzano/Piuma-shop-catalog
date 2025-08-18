@@ -100,7 +100,7 @@ const bags = [
   { id: 16, name: "Paris", price: "$50.000", imagesUrl: [paris, paris2], category: "Carteras", inStock: true },
   { id: 17, name: "Planisferio", price: "$45.000", imagesUrl: [planisferio, planisferio2], category: "Carteras", inStock: true },
   { id: 18, name: "Squash", price: "$45.000", imagesUrl: [squash, squash2], category: "Carteras", inStock: true },
-  { id: 19, name: "Topografia", price: "$35.000", imagesUrl: [topografia, topografia2], category: "Carteras", inStock: true },
+  { id: 19, name: "Topografia", price: "$35.000", imagesUrl: [topografia, topografia2], category: "Carteras", inStock: false },
   { id: 20, name: "ViaFiore", price: "$45.000", imagesUrl: [viaFiore, viaFiore2], category: "Carteras", inStock: true },
 
   // Billeteras
