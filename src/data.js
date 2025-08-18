@@ -80,7 +80,7 @@ import trotamundos from './assets/Trotamundos.jpg';
 
 const bags = [
   // Bandoleras
-  { id: 1, name: "Eclipse", price: "", imagesUrl: [eclipse, eclipse2], category: "Bandoleras", inStock: true },
+  { id: 1, name: "Eclipse", price: "$25.000", imagesUrl: [eclipse, eclipse2], category: "Bandoleras", inStock: true },
   { id: 2, name: "Estepa", price: "", imagesUrl: [estepa, estepa2], category: "Bandoleras", inStock: true },
   { id: 3, name: "Sabana", price: "", imagesUrl: [sabana, sabana2], category: "Bandoleras", inStock: true },
   { id: 4, name: "Sendero", price: "", imagesUrl: [sendero], category: "Bandoleras", inStock: true },
@@ -89,8 +89,8 @@ const bags = [
   { id: 5, name: "Amayra", price: "", imagesUrl: [amayra, amayra2], category: "Carteras", inStock: true },
   { id: 6, name: "Chenson", price: "", imagesUrl: [chenson, chenson2], category: "Carteras", inStock: true },
   { id: 7, name: "Coordenadas-duo", price: "", imagesUrl: [coordenadas, coordenadas2], category: "Carteras", inStock: true },
-  { id: 8, name: "Isla", price: "", imagesUrl: [isla, isla2], category: "Carteras", inStock: true },
-  { id: 9, name: "Kioto", price: "", imagesUrl: [kioto, kioto2], category: "Carteras", inStock: true },
+  { id: 8, name: "Isla", price: "", imagesUrl: [isla, isla2], category: "Carteras", inStock: false },
+  { id: 9, name: "Kioto", price: "", imagesUrl: [kioto, kioto2], category: "Carteras", inStock: false },
   { id: 10, name: "Manhattan", price: "", imagesUrl: [manhattan, manhattan2], category: "Carteras", inStock: true },
   { id: 11, name: "Mendoza", price: "", imagesUrl: [mendoza, mendoza2], category: "Carteras", inStock: true },
   { id: 12, name: "Meridiano", price: "", imagesUrl: [meridiano, meridiano2], category: "Carteras", inStock: true },
@@ -125,7 +125,7 @@ const bags = [
   { id: 37, name: "Ecuador", price: "", imagesUrl: [ecuador, ecuador2], category: "Riñoneras", inStock: true},
   { id: 38, name: "Horizonte", price: "", imagesUrl: [horizonte], category: "Riñoneras", inStock: true},
     // Porta Celulares
-  { id: 39, name: "Laguna", price: "", imagesUrl: [laguna], category: "Porta Celulares", inStock: true},
+  { id: 39, name: "Laguna", price: "", imagesUrl: [laguna], category: "Porta Celulares", inStock: false},
   { id: 40, name: "Trotamundos", price: "", imagesUrl: [trotamundos], category: "Porta Celulares", inStock: true},
 ];
 
