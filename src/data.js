@@ -83,12 +83,12 @@ const bags = [
   { id: 1, name: "Eclipse", price: "$25.000", imagesUrl: [eclipse, eclipse2], category: "Bandoleras", inStock: true },
   { id: 2, name: "Estepa", price: "$28.000", imagesUrl: [estepa, estepa2], category: "Bandoleras", inStock: true },
   { id: 3, name: "Sabana", price: "$25.000", imagesUrl: [sabana, sabana2], category: "Bandoleras", inStock: true },
-  { id: 4, name: "Sendero", price: "$35.000", imagesUrl: [sendero], category: "Bandoleras", inStock: true },
+  { id: 4, name: "Sendero", price: "$35.000", imagesUrl: [sendero], category: "Bandoleras", inStock: false },
   
   // Carteras
   { id: 5, name: "Amayra", price: "$45.000", imagesUrl: [amayra, amayra2], category: "Carteras", inStock: true },
   { id: 6, name: "Chenson", price: "$35.000", imagesUrl: [chenson, chenson2], category: "Carteras", inStock: true },
-  { id: 7, name: "Coordenadas-duo", price: "$30.000", imagesUrl: [coordenadas, coordenadas2], category: "Carteras", inStock: true },
+  { id: 7, name: "Coordenadas-duo", price: "$30.000", imagesUrl: [coordenadas, coordenadas2], category: "Carteras", inStock: false },
   { id: 8, name: "Isla", price: "$45.000", imagesUrl: [isla, isla2], category: "Carteras", inStock: false },
   { id: 9, name: "Kioto", price: "$45.000", imagesUrl: [kioto, kioto2], category: "Carteras", inStock: false },
   { id: 10, name: "Manhattan", price: "$28.000", imagesUrl: [manhattan, manhattan2], category: "Carteras", inStock: true },
@@ -115,15 +115,15 @@ const bags = [
   { id: 29, name: "Orion", price: "$20.000", imagesUrl: [orion, orion2], category: "Billeteras", inStock: true },
   { id: 30, name: "Rosa de los vientos", price: "$18.000", imagesUrl: [rosadelosvientos], category: "Billeteras", inStock: true },
   { id: 31, name: "Sahara y Luna de ruta", price: "", imagesUrl: [saharayLunaderuta, saharayLunaderuta2], category: "Billeteras" , inStock: true},
-  { id: 32, name: "Sahara", price: "$25.000", imagesUrl: [sahara], category: "Billeteras", inStock: true },
+  { id: 32, name: "Sahara", price: "$25.000", imagesUrl: [sahara], category: "Billeteras", inStock: false },
   { id: 33, name: "Travesia", price: "$18.000", imagesUrl: [travesia], category: "Billeteras", inStock: true },
     // Mochilas
-  { id: 34, name: "Cartagena", price: "$45.000", imagesUrl: [cartagena, cartagena2], category: "Mochillas", inStock: false },
-  { id: 35, name: "Cordillera", price: "$55.000", imagesUrl: [cordillera, cordillera2], category: "Mochillas", inStock: true},
-  { id: 36, name: "Polo norte", price: "$35.000", imagesUrl: [polonorte, polonorte2, polonorte4, polonorte5], category: "Mochillas", inStock: true},
+  { id: 34, name: "Cartagena", price: "$45.000", imagesUrl: [cartagena, cartagena2], category: "Mochilas", inStock: false },
+  { id: 35, name: "Cordillera", price: "$55.000", imagesUrl: [cordillera, cordillera2], category: "Mochilas", inStock: true},
+  { id: 36, name: "Polo norte", price: "$35.000", imagesUrl: [polonorte, polonorte2, polonorte4, polonorte5], category: "Mochilas", inStock: true},
     // Rinoneras
   { id: 37, name: "Ecuador", price: "$12.000", imagesUrl: [ecuador, ecuador2], category: "Riñoneras", inStock: true},
-  { id: 38, name: "Horizonte", price: "$10.000", imagesUrl: [horizonte], category: "Riñoneras", inStock: true},
+  { id: 38, name: "Horizonte", price: "$10.000", imagesUrl: [horizonte], category: "Riñoneras", inStock: false},
     // Porta Celulares
   { id: 39, name: "Laguna", price: "$18.000", imagesUrl: [laguna], category: "Porta Celulares", inStock: false},
   { id: 40, name: "Trotamundos", price: "$10.000", imagesUrl: [trotamundos], category: "Porta Celulares", inStock: true},
