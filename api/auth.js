@@ -1,4 +1,6 @@
 // api/auth.js - API de autenticación para Vercel
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 // Configuración de administradores
 const ADMIN_USERS = [
@@ -6,14 +8,15 @@ const ADMIN_USERS = [
     id: 1,
     username: 'admin',
     email: 'admin@piuma.com',
-    // Contraseña: "admin123" (sin hash para simplicidad)
-    password: 'admin123'
+    // Contraseña: "admin123" (hasheada)
+    password: '$2a$10$8H8iPteGd6gWnn4dBxqBEOC6eOMDwLItNlQpXRjDub/3UHcHDfdSC'
   }
 ];
 
+
 const JWT_SECRET = process.env.JWT_SECRET || 'piuma-secret-key-change-in-production';
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Configurar CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');

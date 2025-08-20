@@ -1,9 +1,11 @@
-// api/products.js - API para productos con Neon PostgreSQL
+
+// api/admin/products.js - API protegida para administración de productos
 const { Pool } = require('pg');
+const jwt = require('jsonwebtoken');
 
 // Configuración de la conexión a Neon PostgreSQL
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
+  connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   }
