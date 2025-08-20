@@ -118,9 +118,9 @@ const bags = [
   { id: 32, name: "Sahara", price: "$25.000", imagesUrl: [sahara], category: "Billeteras", inStock: true },
   { id: 33, name: "Travesia", price: "$18.000", imagesUrl: [travesia], category: "Billeteras", inStock: true },
     // Mochilas
-  { id: 34, name: "Cartagena", price: "$45.000", imagesUrl: [cartagena, cartagena2], category: "Mochillas", inStock: false },
-  { id: 35, name: "Cordillera", price: "$55.000", imagesUrl: [cordillera, cordillera2], category: "Mochillas", inStock: true},
-  { id: 36, name: "Polo norte", price: "$35.000", imagesUrl: [polonorte, polonorte2, polonorte4, polonorte5], category: "Mochillas", inStock: true},
+  { id: 34, name: "Cartagena", price: "$45.000", imagesUrl: [cartagena, cartagena2], category: "Mochilas", inStock: false },
+  { id: 35, name: "Cordillera", price: "$55.000", imagesUrl: [cordillera, cordillera2], category: "Mochilas", inStock: true},
+  { id: 36, name: "Polo norte", price: "$35.000", imagesUrl: [polonorte, polonorte2, polonorte4, polonorte5], category: "Mochilas", inStock: true},
     // Rinoneras
   { id: 37, name: "Ecuador", price: "$12.000", imagesUrl: [ecuador, ecuador2], category: "Riñoneras", inStock: true},
   { id: 38, name: "Horizonte", price: "$10.000", imagesUrl: [horizonte], category: "Riñoneras", inStock: true},

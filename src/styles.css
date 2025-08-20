@@ -140,6 +140,11 @@ body {
     height: auto; /* La altura se ajusta automáticamente */
     object-fit: cover;
     display: block;
+    transition: opacity 1.6s ease-in-out; /* Duración y suavidad */
+}
+.image-gallery .bag-image.active {
+    opacity: 1;
+    position: relative; /* Solo la imagen activa ocupa el flujo */
 }
 
 /* El resto de estilos de los botones */
@@ -330,7 +335,6 @@ body {
 .search-container .search-icon:hover {
     color: #333;
 }
-
 
 /* Estilos para la lista de sugerencias */
 .suggestions-list {

@@ -17,7 +17,7 @@ function App() {
 
     const searchRef = useRef(null);
 
-    const categories = ['Todos', 'Bandoleras', 'Carteras', 'Billeteras', 'Riñoneras', 'Mochillas', 'Porta Celulares'];
+    const categories = ['Todos', 'Bandoleras', 'Carteras', 'Billeteras', 'Riñoneras', 'Mochilas', 'Porta Celulares'];
 
     useEffect(() => {
         const handleClickOutside = (event) => {
