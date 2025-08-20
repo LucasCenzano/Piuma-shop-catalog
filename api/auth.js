@@ -1,6 +1,4 @@
 // api/auth.js - API de autenticación para Vercel
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 
 // Configuración de administradores
 const ADMIN_USERS = [
@@ -8,8 +6,8 @@ const ADMIN_USERS = [
     id: 1,
     username: 'admin',
     email: 'admin@piuma.com',
-    // Contraseña: "admin123" hasheada
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+    // Contraseña: "admin123" (sin hash para simplicidad)
+    password: 'admin123'
   }
 ];
 
@@ -32,6 +30,8 @@ export default async function handler(req, res) {
   try {
     const { username, password } = req.body;
 
+    console.log('Login attempt:', { username, password }); // Para debug
+
     if (!username || !password) {
       return res.status(400).json({ error: 'Username y password son requeridos' });
     }
@@ -40,27 +40,20 @@ export default async function handler(req, res) {
     const user = ADMIN_USERS.find(u => u.username === username || u.email === username);
     
     if (!user) {
+      console.log('Usuario no encontrado:', username);
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Verificar contraseña
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    
-    if (!isValidPassword) {
+    // Verificar contraseña (comparación directa)
+    if (password !== user.password) {
+      console.log('Contraseña incorrecta para:', username);
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Generar JWT token
-    const token = jwt.sign(
-      { 
-        id: user.id, 
-        username: user.username,
-        email: user.email,
-        role: 'admin'
-      },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    console.log('Login exitoso para:', username);
+
+    // Generar token simple
+    const token = `token-${user.id}-${Date.now()}`;
 
     return res.status(200).json({
       success: true,
@@ -76,7 +69,8 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Error en auth API:', error);
     return res.status(500).json({ 
-      error: 'Error interno del servidor'
+      error: 'Error interno del servidor',
+      details: error.message
     });
   }
 }
