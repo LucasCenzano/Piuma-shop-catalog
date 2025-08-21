@@ -1,21 +1,4 @@
-// api/auth.js - API de autenticación para Vercel
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-
-// Configuración de administradores
-const ADMIN_USERS = [
-  {
-    id: 1,
-    username: 'admin',
-    email: 'admin@piuma.com',
-    // Contraseña: "admin123" (hasheada)
-    password: '$2a$10$8H8iPteGd6gWnn4dBxqBEOC6eOMDwLItNlQpXRjDub/3UHcHDfdSC'
-  }
-];
-
-
-const JWT_SECRET = process.env.JWT_SECRET || 'piuma-secret-key-change-in-production';
-
+// api/auth.js - API de autenticación SIN dependencias externas
 module.exports = async function handler(req, res) {
   // Configurar CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -33,41 +16,35 @@ module.exports = async function handler(req, res) {
   try {
     const { username, password } = req.body;
 
-    console.log('Login attempt:', { username, password }); // Para debug
-
     if (!username || !password) {
       return res.status(400).json({ error: 'Username y password son requeridos' });
     }
 
-    // Buscar usuario
-    const user = ADMIN_USERS.find(u => u.username === username || u.email === username);
-    
-    if (!user) {
-      console.log('Usuario no encontrado:', username);
-      return res.status(401).json({ error: 'Credenciales inválidas' });
-    }
-
-    // Verificar contraseña (comparación directa)
-    if (password !== user.password) {
-      console.log('Contraseña incorrecta para:', username);
-      return res.status(401).json({ error: 'Credenciales inválidas' });
-    }
-
-    console.log('Login exitoso para:', username);
-
-    // Generar token simple
-    const token = `token-${user.id}-${Date.now()}`;
-
-    return res.status(200).json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
+    // Verificación directa - Usuario: admin, Contraseña: admin123
+    if (username === 'admin' && password === 'admin123') {
+      const user = {
+        id: 1,
+        username: 'admin',
+        email: 'admin@piuma.com',
         role: 'admin'
-      }
-    });
+      };
+      
+      // Crear token simple sin JWT
+      const tokenData = {
+        ...user,
+        exp: Date.now() + (24 * 60 * 60 * 1000) // 24 horas
+      };
+      
+      const token = 'bearer_' + Buffer.from(JSON.stringify(tokenData)).toString('base64');
+
+      return res.status(200).json({
+        success: true,
+        token,
+        user
+      });
+    } else {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
 
   } catch (error) {
     console.error('Error en auth API:', error);
