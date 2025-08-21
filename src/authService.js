@@ -145,10 +145,15 @@ class AuthService {
     }
   }
 
-  // Obtener headers de autorización
+ // Obtener headers de autorización
   getAuthHeaders() {
+    // Si el token empieza con "bearer_" ya está formateado, si no, agregamos Bearer
+    const authToken = this.token.startsWith('bearer_') 
+      ? this.token 
+      : `Bearer ${this.token}`;
+    
     return {
-      'Authorization': `Bearer ${this.token}`,
+      'Authorization': authToken,
       'Content-Type': 'application/json'
     };
   }
