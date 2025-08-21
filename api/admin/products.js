@@ -25,25 +25,50 @@ function requireAuth(handler) {
   return async (req, res) => {
     const authHeader = req.headers.authorization;
     
-    if (!authHeader || (!authHeader.startsWith('Bearer ') && !authHeader.startsWith('bearer_'))) {
-      return res.status(401).json({ error: 'No autorizado - Token requerido' });
+    console.log('Auth header received:', authHeader ? authHeader.substring(0, 20) + '...' : 'none');
+    
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No autorizado - Token no proporcionado' });
+    }
+    
+    // Aceptar tanto "Bearer " como "bearer_"
+    let token;
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (authHeader.startsWith('bearer_')) {
+      token = authHeader.substring(7);
+    } else {
+      return res.status(401).json({ error: 'No autorizado - Formato de token inválido' });
     }
 
-    const token = authHeader.substring(7); // Quitar "Bearer " o "bearer_"
-
     try {
-      // Decodificar token simple
-      const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
-      
-      // Verificar expiración
-      if (decoded.exp && decoded.exp < Date.now()) {
-        return res.status(401).json({ error: 'No autorizado - Token expirado' });
+      // Si el token empieza con "bearer_", es nuestro token simple
+      if (authHeader.startsWith('bearer_')) {
+        // El token ya viene sin el prefijo "bearer_"
+        const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
+        
+        // Verificar expiración
+        if (decoded.exp && decoded.exp < Date.now()) {
+          return res.status(401).json({ error: 'No autorizado - Token expirado' });
+        }
+        
+        req.user = decoded;
+        return handler(req, res);
+      } else {
+        // Token en formato Bearer estándar
+        const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
+        
+        // Verificar expiración
+        if (decoded.exp && decoded.exp < Date.now()) {
+          return res.status(401).json({ error: 'No autorizado - Token expirado' });
+        }
+        
+        req.user = decoded;
+        return handler(req, res);
       }
-      
-      req.user = decoded;
-      return handler(req, res);
     } catch (error) {
-      return res.status(401).json({ error: 'No autorizado - Token inválido' });
+      console.error('Error decodificando token:', error.message);
+      return res.status(401).json({ error: 'No autorizado - Token inválido', details: error.message });
     }
   };
 }
