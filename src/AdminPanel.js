@@ -582,7 +582,7 @@ const AdminPanel = ({ onLogout }) => {
                             borderRadius: '4px' 
                           }}
                           onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/50x50?text=Sin+imagen';
+                            e.target.src = '/assets/sin-imagen.png';
                           }}
                         />
                       ) : (
