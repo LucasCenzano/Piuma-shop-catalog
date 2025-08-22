@@ -1,8 +1,8 @@
-// authService.js - Servicio de autenticación corregido
+// authService.js - Servicio de autenticación corregido y completo
 
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '' // En producción usa la misma URL
-  : 'http://localhost:3000';
+  ? '' // En producción usa la misma URL (URLs relativas)
+  : '';  // En desarrollo también usa URLs relativas
 
 class AuthService {
   constructor() {
@@ -44,11 +44,10 @@ class AuthService {
       'Content-Type': 'application/json',
     };
 
-    const token = this.getToken(); // Obtener token actualizado
+    const token = this.getToken();
     if (token) {
-      // El token ya viene con el prefijo bearer_ desde el servidor
       headers['Authorization'] = token;
-      console.log('Token enviado:', token.substring(0, 20) + '...');
+      console.log('Token incluido en headers');
     }
 
     return headers;
@@ -84,7 +83,6 @@ class AuthService {
         this.user = data.user;
         
         console.log('Login exitoso');
-        console.log('Token guardado:', data.token.substring(0, 30) + '...');
         return { success: true, user: data.user };
       } else {
         throw new Error('Respuesta de login inválida');
@@ -114,8 +112,9 @@ class AuthService {
     if (!token) return true;
 
     try {
-      // Decodificar token simple
       let tokenData = token;
+      
+      // Remover prefijos si existen
       if (token.startsWith('bearer_')) {
         tokenData = token.substring(7);
       } else if (token.startsWith('Bearer ')) {
@@ -161,7 +160,6 @@ class AuthService {
 
   // Realizar petición autenticada
   async authenticatedFetch(url, options = {}) {
-    // Obtener token actualizado del localStorage
     const currentToken = this.getToken();
     
     if (!currentToken) {
@@ -169,7 +167,6 @@ class AuthService {
       throw new Error('No autorizado - Sin token');
     }
 
-    // Verificar expiración
     if (this.isTokenExpired()) {
       this.logout();
       throw new Error('Sesión expirada');
@@ -185,7 +182,6 @@ class AuthService {
     };
 
     console.log('Realizando petición autenticada a:', url);
-    console.log('Token en Authorization:', currentToken.substring(0, 30) + '...');
 
     const response = await fetch(url, config);
 
@@ -198,13 +194,16 @@ class AuthService {
     return response;
   }
 
+  // ============================================
   // MÉTODOS PARA PRODUCTOS (ADMIN)
+  // ============================================
 
-  // Obtener productos (API protegida)
+  // Obtener productos (API protegida) - MÉTODO CORREGIDO
   async getProducts() {
     try {
       console.log('Obteniendo productos desde API protegida...');
       
+      // CORRECCIÓN: Usar la URL correcta directamente
       const response = await this.authenticatedFetch(`${API_BASE_URL}/api/admin/products`);
 
       if (!response.ok) {
@@ -214,7 +213,7 @@ class AuthService {
       }
 
       const products = await response.json();
-      console.log('Productos obtenidos:', products.length);
+      console.log(`Productos obtenidos: ${products.length}`);
       return products;
     } catch (error) {
       console.error('Error obteniendo productos:', error);
@@ -251,6 +250,11 @@ class AuthService {
     try {
       console.log('Actualizando producto:', productData);
       
+      // Asegurarse de que el ID esté presente
+      if (!productData.id) {
+        throw new Error('ID del producto es requerido para actualizar');
+      }
+      
       const response = await this.authenticatedFetch(`${API_BASE_URL}/api/admin/products`, {
         method: 'PUT',
         body: JSON.stringify(productData),
@@ -273,7 +277,7 @@ class AuthService {
   // Eliminar producto
   async deleteProduct(productId) {
     try {
-      console.log('Eliminando producto:', productId);
+      console.log('Eliminando producto con ID:', productId);
       
       const response = await this.authenticatedFetch(`${API_BASE_URL}/api/admin/products?id=${productId}`, {
         method: 'DELETE',
@@ -293,9 +297,11 @@ class AuthService {
     }
   }
 
-  // MÉTODOS PARA PRODUCTOS PÚBLICOS (sin autenticación)
+  // ============================================
+  // MÉTODOS PARA PRODUCTOS PÚBLICOS
+  // ============================================
 
-  // Obtener productos públicos
+  // Obtener productos públicos (sin autenticación)
   async getPublicProducts() {
     try {
       console.log('Obteniendo productos públicos...');
@@ -307,7 +313,7 @@ class AuthService {
       }
 
       const products = await response.json();
-      console.log('Productos públicos obtenidos:', products.length);
+      console.log(`Productos públicos obtenidos: ${products.length}`);
       return products;
     } catch (error) {
       console.error('Error obteniendo productos públicos:', error);
@@ -341,9 +347,31 @@ class AuthService {
       throw error;
     }
   }
+
+  // ============================================
+  // MÉTODOS DE UTILIDAD
+  // ============================================
+
+  // Refrescar token desde localStorage (útil después de cambios)
+  refreshTokenFromStorage() {
+    this.token = this.getToken();
+    this.user = this.getUser();
+    console.log('Token refrescado desde localStorage');
+  }
+
+  // Obtener información del usuario actual
+  getCurrentUser() {
+    return this.user;
+  }
+
+  // Verificar si el usuario es admin
+  isAdmin() {
+    return this.user && this.user.role === 'admin';
+  }
 }
 
 // Crear instancia singleton
 const authService = new AuthService();
 
+// Exportar la instancia
 export default authService;
