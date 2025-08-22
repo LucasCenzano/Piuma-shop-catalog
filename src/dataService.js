@@ -1,11 +1,9 @@
-// dataService.js - Servicio para manejar datos locales y de la API Neon PostgreSQL
+// dataService.js - Servicio para manejar datos de la API y locales
 import localBagsData from './data';
 
 class DataService {
   constructor() {
-    this.apiUrl = process.env.NODE_ENV === 'production' 
-      ? '/api/products' 
-      : '/api/products';
+    this.apiUrl = '/api/products';
     this.fallbackData = localBagsData;
     this.cache = null;
     this.cacheTime = null;
@@ -22,10 +20,12 @@ class DataService {
   async getAllProducts() {
     // Si hay cache válido, usar cache
     if (this.isCacheValid()) {
+      console.log('Usando productos del cache');
       return this.cache;
     }
 
     try {
+      console.log('Obteniendo productos de la base de datos...');
       const response = await fetch(this.apiUrl);
       
       if (!response.ok) {
@@ -33,14 +33,17 @@ class DataService {
       }
       
       const productsFromDB = await response.json();
+      console.log(`Productos de la DB: ${productsFromDB.length}`);
       
-      // Combinar datos de la DB con datos locales (imágenes y otros datos estáticos)
-      const combinedProducts = this.combineProductData(productsFromDB);
+      // IMPORTANTE: Ahora usamos TODOS los productos de la DB
+      // y complementamos con datos locales si existen
+      const combinedProducts = this.combineAllProducts(productsFromDB);
       
       // Actualizar cache
       this.cache = combinedProducts;
       this.cacheTime = Date.now();
       
+      console.log(`Total de productos combinados: ${combinedProducts.length}`);
       return combinedProducts;
       
     } catch (error) {
@@ -51,29 +54,63 @@ class DataService {
     }
   }
 
-  // Combinar datos de la base de datos PostgreSQL con datos locales
-  combineProductData(dbProducts) {
-    return this.fallbackData.map(localProduct => {
-      // Buscar el producto correspondiente en la DB
-      const dbProduct = dbProducts.find(p => p.id === localProduct.id);
+  // Combinar TODOS los productos de la DB con datos locales si existen
+  combineAllProducts(dbProducts) {
+    // Crear un mapa de productos locales por nombre para búsqueda rápida
+    const localProductsMap = new Map();
+    this.fallbackData.forEach(product => {
+      localProductsMap.set(product.name.toLowerCase(), product);
+    });
+
+    // Procesar TODOS los productos de la base de datos
+    const combinedProducts = dbProducts.map(dbProduct => {
+      // Buscar si existe un producto local con el mismo nombre
+      const localProduct = localProductsMap.get(dbProduct.name.toLowerCase());
       
-      if (dbProduct) {
-        // Combinar datos: usar stock de DB, resto de datos locales
-        // Convertir nombres de campos de PostgreSQL (snake_case) a camelCase
+      if (localProduct) {
+        // Si existe localmente, combinar datos
+        // Usar datos de la DB para stock y precio, pero mantener imágenes locales si existen
         return {
-          ...localProduct,
+          ...localProduct, // Datos locales (incluye imágenes importadas)
+          id: dbProduct.id,
+          name: dbProduct.name, // Nombre de la DB
+          price: dbProduct.price || localProduct.price,
+          category: dbProduct.category || localProduct.category,
+          inStock: dbProduct.in_stock, // Stock siempre de la DB
+          // Si hay URLs de imágenes en la DB, usarlas; si no, usar las locales
+          imagesUrl: (dbProduct.images_url && dbProduct.images_url.length > 0) 
+            ? dbProduct.images_url 
+            : localProduct.imagesUrl,
+          // Para las imágenes del componente React (imports)
+          images: localProduct.images || []
+        };
+      } else {
+        // Si NO existe localmente (producto nuevo), crear desde la DB
+        return {
+          id: dbProduct.id,
+          name: dbProduct.name,
+          price: dbProduct.price || '',
+          category: dbProduct.category,
           inStock: dbProduct.in_stock,
-          // Si hay otros campos en la DB, también los usamos
-          ...(dbProduct.price && { price: dbProduct.price }),
-          ...(dbProduct.name && { name: dbProduct.name }),
-          // Las imágenes vienen de la DB como images_url, pero preferimos las locales
-          // para mantener las referencias de importación de React
+          // Usar las URLs de imágenes de la DB si existen
+          imagesUrl: dbProduct.images_url || [],
+          // No hay imágenes importadas para productos nuevos
+          images: [],
+          // Marcar como producto nuevo (opcional, para debugging)
+          isNew: true
         };
       }
-      
-      // Si no está en la DB, usar datos locales
-      return localProduct;
     });
+
+    // Ordenar productos: primero por categoría, luego por nombre
+    combinedProducts.sort((a, b) => {
+      if (a.category !== b.category) {
+        return a.category.localeCompare(b.category);
+      }
+      return a.name.localeCompare(b.name);
+    });
+
+    return combinedProducts;
   }
 
   // Actualizar stock de un producto
@@ -103,9 +140,10 @@ class DataService {
     }
   }
 
-  // Sincronizar datos locales con la base de datos
+  // Sincronizar datos locales con la base de datos (opcional)
   async syncLocalDataToDB() {
     try {
+      console.log('Sincronizando datos locales con la base de datos...');
       const response = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
@@ -142,16 +180,37 @@ class DataService {
       }
       
       const dbProduct = await response.json();
+      
+      // Buscar si existe localmente
       const localProduct = this.fallbackData.find(p => p.id === productId);
       
       if (localProduct && dbProduct) {
+        // Combinar datos
         return {
           ...localProduct,
-          inStock: dbProduct.in_stock // Convertir de snake_case a camelCase
+          name: dbProduct.name,
+          price: dbProduct.price || localProduct.price,
+          category: dbProduct.category || localProduct.category,
+          inStock: dbProduct.in_stock,
+          imagesUrl: dbProduct.images_url || localProduct.imagesUrl || []
         };
       }
       
-      return dbProduct || localProduct;
+      // Si solo existe en la DB (producto nuevo)
+      if (dbProduct) {
+        return {
+          id: dbProduct.id,
+          name: dbProduct.name,
+          price: dbProduct.price || '',
+          category: dbProduct.category,
+          inStock: dbProduct.in_stock,
+          imagesUrl: dbProduct.images_url || [],
+          images: []
+        };
+      }
+      
+      // Si solo existe localmente (no debería pasar)
+      return localProduct;
       
     } catch (error) {
       console.warn('Error al obtener producto de la API:', error);
@@ -159,10 +218,56 @@ class DataService {
     }
   }
 
+  // Buscar productos por nombre o categoría
+  searchProducts(searchTerm) {
+    const products = this.cache || this.fallbackData;
+    const lowercasedTerm = searchTerm.toLowerCase();
+    
+    return products.filter(product => 
+      product.name.toLowerCase().includes(lowercasedTerm) ||
+      product.category.toLowerCase().includes(lowercasedTerm)
+    );
+  }
+
+  // Obtener productos por categoría
+  getProductsByCategory(category) {
+    const products = this.cache || this.fallbackData;
+    
+    if (category === 'Todos') {
+      return products;
+    }
+    
+    return products.filter(product => product.category === category);
+  }
+
   // Invalidar cache manualmente
   invalidateCache() {
+    console.log('Cache invalidado - se cargarán datos frescos en la próxima petición');
     this.cache = null;
     this.cacheTime = null;
+  }
+
+  // Obtener estadísticas de productos
+  getProductStats() {
+    const products = this.cache || this.fallbackData;
+    
+    const stats = {
+      total: products.length,
+      inStock: products.filter(p => p.inStock).length,
+      outOfStock: products.filter(p => !p.inStock).length,
+      byCategory: {},
+      newProducts: products.filter(p => p.isNew).length
+    };
+    
+    // Contar por categoría
+    products.forEach(product => {
+      if (!stats.byCategory[product.category]) {
+        stats.byCategory[product.category] = 0;
+      }
+      stats.byCategory[product.category]++;
+    });
+    
+    return stats;
   }
 }
 

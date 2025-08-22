@@ -168,19 +168,6 @@ function AdminLogin({ onLoginSuccess }) {
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
-
-        <div style={{
-          marginTop: '2rem',
-          padding: '1rem',
-          backgroundColor: '#e3f2fd',
-          borderRadius: '8px',
-          fontSize: '0.85rem',
-          color: '#1565c0'
-        }}>
-          <strong>Credenciales de prueba:</strong><br />
-          Usuario: admin<br />
-          Contraseña: admin123
-        </div>
       </div>
     </div>
   );

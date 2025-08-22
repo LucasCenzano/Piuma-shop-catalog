@@ -1,9 +1,9 @@
-// AdminPanel.js - Panel de administración corregido
+// AdminPanel.js - Panel de administración con soporte para imágenes
 import React, { useState, useEffect } from 'react';
 import authService from './authService';
 import './AdminPanel.css';
 
-const AdminPanel = () => {
+const AdminPanel = ({ onLogout }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,15 +16,16 @@ const AdminPanel = () => {
     imagesUrl: []
   });
   const [showAddForm, setShowAddForm] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
 
-  // Verificar autenticación al cargar
+  // Cargar productos al montar
   useEffect(() => {
     if (!authService.isAuthenticated()) {
       setError('No tienes permisos para acceder a esta página');
       setLoading(false);
       return;
     }
-
     loadProducts();
   }, []);
 
@@ -42,13 +43,64 @@ const AdminPanel = () => {
       
       if (error.message.includes('Sesión expirada') || error.message.includes('No autorizado')) {
         setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-        // Opcional: redirigir al login
-        // window.location.href = '/login';
       } else {
         setError(`Error cargando productos: ${error.message}`);
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Manejar URL de imagen
+  const handleImageUrlChange = (e) => {
+    const url = e.target.value;
+    setImageUrl(url);
+    
+    // Mostrar preview si es una URL válida
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+      setPreviewUrl(url);
+    } else {
+      setPreviewUrl('');
+    }
+  };
+
+  // Agregar imagen a la lista
+  const addImageToProduct = () => {
+    if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
+      if (editingProduct) {
+        setEditingProduct({
+          ...editingProduct,
+          imagesUrl: [...(editingProduct.imagesUrl || []), imageUrl]
+        });
+      } else {
+        setNewProduct({
+          ...newProduct,
+          imagesUrl: [...newProduct.imagesUrl, imageUrl]
+        });
+      }
+      setImageUrl('');
+      setPreviewUrl('');
+    } else {
+      alert('Por favor ingresa una URL válida (debe empezar con http:// o https://)');
+    }
+  };
+
+  // Eliminar imagen de la lista
+  const removeImage = (index, isEditing = false) => {
+    if (isEditing && editingProduct) {
+      const newImages = [...(editingProduct.imagesUrl || [])];
+      newImages.splice(index, 1);
+      setEditingProduct({
+        ...editingProduct,
+        imagesUrl: newImages
+      });
+    } else {
+      const newImages = [...newProduct.imagesUrl];
+      newImages.splice(index, 1);
+      setNewProduct({
+        ...newProduct,
+        imagesUrl: newImages
+      });
     }
   };
 
@@ -73,6 +125,8 @@ const AdminPanel = () => {
         imagesUrl: []
       });
       setShowAddForm(false);
+      setImageUrl('');
+      setPreviewUrl('');
       
       // Recargar productos
       await loadProducts();
@@ -95,6 +149,8 @@ const AdminPanel = () => {
       await authService.updateProduct(editingProduct);
       
       setEditingProduct(null);
+      setImageUrl('');
+      setPreviewUrl('');
       await loadProducts();
       alert('Producto actualizado exitosamente');
     } catch (error) {
@@ -126,7 +182,7 @@ const AdminPanel = () => {
   const handleToggleStock = async (product) => {
     try {
       const updatedProduct = {
-        ...product,
+        id: product.id,
         inStock: !product.in_stock
       };
       
@@ -145,13 +201,19 @@ const AdminPanel = () => {
       price: product.price,
       category: product.category,
       inStock: product.in_stock,
-      imagesUrl: product.images_url || []
+      imagesUrl: Array.isArray(product.images_url) ? product.images_url : []
     });
+    setImageUrl('');
+    setPreviewUrl('');
   };
 
   const handleLogout = () => {
     authService.logout();
-    window.location.reload();
+    if (onLogout) {
+      onLogout();
+    } else {
+      window.location.reload();
+    }
   };
 
   // Estados de carga y error
@@ -161,7 +223,7 @@ const AdminPanel = () => {
         <div className="error-container">
           <h2>Acceso Denegado</h2>
           <p>{error}</p>
-          <button onClick={() => window.location.href = '/login'}>
+          <button onClick={() => window.location.href = '/admin'}>
             Ir al Login
           </button>
         </div>
@@ -235,6 +297,8 @@ const AdminPanel = () => {
                 <option value="Carteras">Carteras</option>
                 <option value="Billeteras">Billeteras</option>
                 <option value="Mochilas">Mochilas</option>
+                <option value="Riñoneras">Riñoneras</option>
+                <option value="Porta Celulares">Porta Celulares</option>
               </select>
               <label>
                 <input
@@ -245,11 +309,93 @@ const AdminPanel = () => {
                 En Stock
               </label>
             </div>
+            
+            {/* Sección de imágenes */}
+            <div className="image-section" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
+              <h4>Imágenes del producto</h4>
+              <div className="form-row">
+                <input
+                  type="url"
+                  placeholder="URL de la imagen (ej: https://...)"
+                  value={imageUrl}
+                  onChange={handleImageUrlChange}
+                  style={{ flex: 1 }}
+                />
+                <button type="button" onClick={addImageToProduct} style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}>
+                  Agregar Imagen
+                </button>
+              </div>
+              
+              {/* Preview de la imagen */}
+              {previewUrl && (
+                <div style={{ marginTop: '1rem' }}>
+                  <p>Vista previa:</p>
+                  <img 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+                    onError={() => {
+                      setPreviewUrl('');
+                      alert('No se pudo cargar la imagen. Verifica la URL.');
+                    }}
+                  />
+                </div>
+              )}
+              
+              {/* Lista de imágenes agregadas */}
+              {newProduct.imagesUrl.length > 0 && (
+                <div style={{ marginTop: '1rem' }}>
+                  <p>Imágenes agregadas:</p>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {newProduct.imagesUrl.map((url, index) => (
+                      <div key={index} style={{ position: 'relative' }}>
+                        <img 
+                          src={url} 
+                          alt={`Imagen ${index + 1}`}
+                          style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          style={{
+                            position: 'absolute',
+                            top: '-5px',
+                            right: '-5px',
+                            backgroundColor: 'red',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '20px',
+                            height: '20px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <div className="form-actions">
               <button type="submit" disabled={loading}>
                 {loading ? 'Creando...' : 'Crear Producto'}
               </button>
-              <button type="button" onClick={() => setShowAddForm(false)}>
+              <button type="button" onClick={() => {
+                setShowAddForm(false);
+                setImageUrl('');
+                setPreviewUrl('');
+              }}>
                 Cancelar
               </button>
             </div>
@@ -257,7 +403,7 @@ const AdminPanel = () => {
         </div>
       )}
 
-      {/* Formulario de edición */}
+      {/* Formulario de edición (similar al de agregar) */}
       {editingProduct && (
         <div className="product-form editing">
           <h3>Editar Producto</h3>
@@ -287,6 +433,8 @@ const AdminPanel = () => {
                 <option value="Carteras">Carteras</option>
                 <option value="Billeteras">Billeteras</option>
                 <option value="Mochilas">Mochilas</option>
+                <option value="Riñoneras">Riñoneras</option>
+                <option value="Porta Celulares">Porta Celulares</option>
               </select>
               <label>
                 <input
@@ -297,11 +445,91 @@ const AdminPanel = () => {
                 En Stock
               </label>
             </div>
+            
+            {/* Sección de imágenes para edición */}
+            <div className="image-section" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
+              <h4>Imágenes del producto</h4>
+              <div className="form-row">
+                <input
+                  type="url"
+                  placeholder="URL de la imagen (ej: https://...)"
+                  value={imageUrl}
+                  onChange={handleImageUrlChange}
+                  style={{ flex: 1 }}
+                />
+                <button type="button" onClick={addImageToProduct} style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}>
+                  Agregar Imagen
+                </button>
+              </div>
+              
+              {previewUrl && (
+                <div style={{ marginTop: '1rem' }}>
+                  <p>Vista previa:</p>
+                  <img 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+                    onError={() => {
+                      setPreviewUrl('');
+                      alert('No se pudo cargar la imagen. Verifica la URL.');
+                    }}
+                  />
+                </div>
+              )}
+              
+              {editingProduct.imagesUrl && editingProduct.imagesUrl.length > 0 && (
+                <div style={{ marginTop: '1rem' }}>
+                  <p>Imágenes actuales:</p>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {editingProduct.imagesUrl.map((url, index) => (
+                      <div key={index} style={{ position: 'relative' }}>
+                        <img 
+                          src={url} 
+                          alt={`Imagen ${index + 1}`}
+                          style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index, true)}
+                          style={{
+                            position: 'absolute',
+                            top: '-5px',
+                            right: '-5px',
+                            backgroundColor: 'red',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '20px',
+                            height: '20px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <div className="form-actions">
               <button type="submit" disabled={loading}>
                 {loading ? 'Actualizando...' : 'Actualizar'}
               </button>
-              <button type="button" onClick={() => setEditingProduct(null)}>
+              <button type="button" onClick={() => {
+                setEditingProduct(null);
+                setImageUrl('');
+                setPreviewUrl('');
+              }}>
                 Cancelar
               </button>
             </div>
@@ -309,7 +537,7 @@ const AdminPanel = () => {
         </div>
       )}
 
-      {/* Lista de productos */}
+      {/* Lista de productos con miniaturas de imágenes */}
       <div className="products-section">
         <h2>Productos ({products.length})</h2>
         
@@ -324,6 +552,7 @@ const AdminPanel = () => {
               <thead>
                 <tr>
                   <th>ID</th>
+                  <th>Imagen</th>
                   <th>Nombre</th>
                   <th>Precio</th>
                   <th>Categoría</th>
@@ -335,6 +564,37 @@ const AdminPanel = () => {
                 {products.map(product => (
                   <tr key={product.id}>
                     <td>{product.id}</td>
+                    <td>
+                      {product.images_url && product.images_url.length > 0 ? (
+                        <img 
+                          src={product.images_url[0]} 
+                          alt={product.name}
+                          style={{ 
+                            width: '50px', 
+                            height: '50px', 
+                            objectFit: 'cover', 
+                            borderRadius: '4px' 
+                          }}
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/50x50?text=Sin+imagen';
+                          }}
+                        />
+                      ) : (
+                        <div style={{ 
+                          width: '50px', 
+                          height: '50px', 
+                          backgroundColor: '#f0f0f0', 
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          color: '#999'
+                        }}>
+                          Sin imagen
+                        </div>
+                      )}
+                    </td>
                     <td>{product.name}</td>
                     <td>{product.price}</td>
                     <td>{product.category}</td>
