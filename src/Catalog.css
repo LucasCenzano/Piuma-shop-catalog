@@ -1,6 +1,20 @@
-/* Catalog.css */
-.catalog {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+/* Agrégalo en tu archivo Catalog.css */
+
+.product-card {
+  /* ... (puedes agregar otros estilos para la tarjeta aquí si quieres) ... */
+  overflow: hidden; /* Importante para que el zoom no se salga de la tarjeta */
+  border-radius: 8px; /* Opcional: para que coincida con el radio de la imagen */
+}
+
+.product-card .product-image {
+  width: 100%;                  /* Hace que la imagen ocupe todo el ancho de su tarjeta */
+  height: 300px;                /* ¡Esta es la clave! Le damos una altura fija. Puedes cambiar este valor. */
+  object-fit: cover;            /* Evita que la imagen se estire o deforme, la recorta para que encaje. */
+  display: block;               /* Mejora el alineamiento y quita espacios extra. */
+  transition: transform 0.3s ease; /* Añade un efecto suave al pasar el cursor */
+}
+
+/* Opcional: Un pequeño efecto de zoom al pasar el ratón */
+.product-card:hover .product-image {
+  transform: scale(1.05);
 }
