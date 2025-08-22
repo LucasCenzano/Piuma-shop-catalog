@@ -30,16 +30,25 @@ function MainApp() {
     }, []);
 
     // Función para cargar productos
+  
     const loadProducts = async () => {
         try {
             setLoading(true);
             setError(null);
             const products = await dataService.getAllProducts();
-            setBagsData(products);
+
+            // 1. Mapeamos los productos para adaptar su estructura
+            const transformedProducts = products.map(product => ({
+                ...product, // Mantenemos todas las propiedades originales (id, name, price, etc.)
+                images: product.images_url || [], // 2. Creamos la propiedad 'images' a partir de 'images_url'
+                inStock: product.in_stock         // 3. Creamos la propiedad 'inStock' a partir de 'in_stock'
+            }));
+
+            setBagsData(transformedProducts); // 4. Guardamos los datos ya transformados
+
         } catch (err) {
             console.error('Error cargando productos:', err);
             setError('Error al cargar productos. Mostrando datos locales.');
-            // En caso de error, bagsData ya tendrá los datos de fallback del servicio
         } finally {
             setLoading(false);
         }
