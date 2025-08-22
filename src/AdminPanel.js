@@ -582,7 +582,7 @@ const AdminPanel = ({ onLogout }) => {
                             borderRadius: '4px' 
                           }}
                           onError={(e) => {
-                            e.target.src = '/assets/sin-imagen.png';
+                            e.target.src = 'public/assets/sin-imagen.png';
                           }}
                         />
                       ) : (
