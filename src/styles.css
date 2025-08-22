@@ -42,12 +42,14 @@ body {
     text-align: left;
     z-index: 100;
 }
+/* En tu archivo styles.css */
+
 .bag-image {
- width: 100%;
- height: auto;
- object-fit: cover;
- border-bottom: 1px solid #eee;
- display: block;
+  width: 100%; /* Hace que la imagen ocupe todo el ancho de su contenedor */
+  height: 250px; /* Establece una altura fija (puedes ajustarla a tu gusto) */
+  object-fit: cover; /* Evita que la imagen se deforme. La recorta para que encaje perfectamente. */
+  display: block; /* Elimina cualquier espacio extra que a veces los navegadores añaden a las imágenes */
+  border-radius: 8px; /* Opcional: añade bordes redondeados para un look más moderno */
 }
 
 
