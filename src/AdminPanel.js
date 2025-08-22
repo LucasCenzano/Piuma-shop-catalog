@@ -53,16 +53,22 @@ const AdminPanel = ({ onLogout }) => {
 
   // Manejar URL de imagen
   const handleImageUrlChange = (e) => {
-    const url = e.target.value;
+    const url = e.target.value.trim();
     setImageUrl(url);
-    
-    // Mostrar preview si es una URL válida
-    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+
+  // Si es URL absoluta o relativa a /assets/, mostrar preview
+    if (
+      url &&
+      (url.startsWith('http://') ||
+      url.startsWith('https://') ||
+      url.startsWith('/assets/'))
+    ) {
       setPreviewUrl(url);
     } else {
       setPreviewUrl('');
     }
-  };
+  };  
+
 
   // Agregar imagen a la lista
   const addImageToProduct = () => {
