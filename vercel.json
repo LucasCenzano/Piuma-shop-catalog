@@ -11,7 +11,7 @@
     }
   },
   "env": {
-    "ADMIN_HASH": "$2b$10$2.AAPiulIBts/atJ97UCdOwOApVj91zEzl4gFmhiKGKgf/Tq76ZSi"
+    "ADMIN_HASH": "$2b$10$l3W1iCrnH2/Pcl49OaPw6OAHlB665V3gbtKBBn1PYRbvPoNzrA4EK"
   },
   "rewrites": [
     {
