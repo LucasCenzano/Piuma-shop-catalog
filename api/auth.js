@@ -1,4 +1,6 @@
-// api/auth.js - API de autenticación SIN dependencias externas
+// api/auth.js - API de autenticación usando credenciales en entorno
+const bcrypt = require('bcryptjs');
+
 module.exports = async function handler(req, res) {
   // Configurar CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,11 +22,14 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Username y password son requeridos' });
     }
 
-    // Verificación directa - Usuario: admin, Contraseña: admin123
-    if (username === 'admin' && password === 'admin123') {
+    // Verificación con credenciales del entorno
+    const adminUser = process.env.ADMIN_USER;
+    const adminHash = process.env.ADMIN_PASS_HASH;
+
+    if (username === adminUser && await bcrypt.compare(password, adminHash)) {
       const user = {
         id: 1,
-        username: 'admin',
+        username: adminUser,
         email: 'admin@piuma.com',
         role: 'admin'
       };

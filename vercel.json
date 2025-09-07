@@ -15,5 +15,9 @@
       "source": "/api/(.*)",
       "destination": "/api/$1"
     }
-  ]
+  ],
+  "env": {
+    "ADMIN_USER": "admin",
+    "ADMIN_PASS_HASH": "$2b$12$F9dh68e6WF27NpDwvBd2MOO8t3Aj9Hi2jzCJvrJxT5g/I9Ekw52wi"
+  }
 }
