@@ -1,4 +1,6 @@
-// api/auth.js - API de autenticación SIN dependencias externas
+// api/auth.js - API de autenticación con verificación de contraseña cifrada
+const bcrypt = require('bcryptjs');
+
 module.exports = async function handler(req, res) {
   // Configurar CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,8 +22,10 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Username y password son requeridos' });
     }
 
-    // Verificación directa - Usuario: admin, Contraseña: admin123
-    if (username === 'admin' && password === 'admin123') {
+    // Verificación con bcrypt - Usuario: admin
+    const adminHash = process.env.ADMIN_HASH;
+
+    if (username === 'admin' && adminHash && await bcrypt.compare(password, adminHash)) {
       const user = {
         id: 1,
         username: 'admin',

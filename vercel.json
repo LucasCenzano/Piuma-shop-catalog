@@ -10,6 +10,9 @@
       "maxDuration": 10
     }
   },
+  "env": {
+    "ADMIN_HASH": "$2b$10$2.AAPiulIBts/atJ97UCdOwOApVj91zEzl4gFmhiKGKgf/Tq76ZSi"
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
