@@ -1,0 +1,386 @@
+@import url('https://fonts.googleapis.com/css2?family=Didot&family=Montserrat:wght@400;700&display=swap');
+/* ...tu código CSS anterior... */
+
+/* Estilos para el cuerpo del texto */
+body {
+    font-family: 'Montserrat', sans-serif;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Estilos para el encabezado principal (el nombre de tu tienda) */
+.App-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 400; /* Regular, evita bold pesado */
+    font-style: italic; /* Agrega un toque elegante */
+    font-size: 2.5rem; /* Ajusta el tamaño como prefieras */
+    text-align: center;
+}
+
+/* Estilos para los nombres de los productos */
+.bag-details h3 {
+    font-family: 'Didot', serif;
+    font-size: 1.2rem;
+}
+
+/* Estilos para los precios */
+.bag-price {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700; /* Negrita para que resalte */
+}
+
+/* Estilos para los botones del menú de categorías */
+.menu-item button {
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* Estilos para el menú de hamburguesa */
+.main-nav {
+    position: relative;
+    background-color: #e6e3d4; /* Color beige */
+    padding: 1rem;
+    text-align: left;
+    z-index: 100;
+}
+/* En tu archivo styles.css */
+
+.bag-image {
+  width: 100%; /* Hace que la imagen ocupe todo el ancho de su contenedor */
+  height: 250px; /* Establece una altura fija (puedes ajustarla a tu gusto) */
+  object-fit: cover; /* Evita que la imagen se deforme. La recorta para que encaje perfectamente. */
+  display: block; /* Elimina cualquier espacio extra que a veces los navegadores añaden a las imágenes */
+  border-radius: 8px; /* Opcional: añade bordes redondeados para un look más moderno */
+}
+
+
+.hamburger-menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 25px;
+    position: relative;
+    z-index: 1000;
+}
+
+.hamburger-menu-btn .bar {
+    width: 100%;
+    height: 3px;
+    background-color: #000000; /* Un color más oscuro para que resalte sobre el beige */
+    border-radius: 5px;
+    transition: all 0.3s ease-in-out;
+}
+
+/* El menú que se despliega */
+.menu-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #e6e3d4;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+}
+
+.menu-list.open {
+    max-height: 500px;
+    padding: 1rem 0;
+}
+
+.menu-item {
+    text-align: center;
+}
+
+.menu-item button {
+    background: none;
+    border: none;
+    color: rgb(0, 0, 0);
+    padding: 1rem;
+    cursor: pointer;
+    font-size: 1rem;
+    width: 100%;
+    text-align: left;
+    transition: background-color 0.3s ease;
+}
+
+.menu-item button:hover,
+.menu-item button.active {
+    background-color: #e6e3d4;;
+}
+
+/* Estilos para las sugerencias de categoría */
+.suggestion-item.suggestion-category {
+    font-weight: bold; /* Hacerlas más prominentes */
+    color: #555; /* Un color ligeramente diferente */
+    background-color: #f0f0e0; /* Un fondo sutilmente diferente */
+}
+
+.suggestion-item.suggestion-category:hover {
+    background-color: #e6e6d6; /* Un hover que coincida */
+}
+
+/* Estilos para la galería de imágenes */
+.image-gallery {
+    position: relative;
+    width: 100%;
+    /* Eliminamos la altura fija */
+    overflow: hidden;
+}
+
+.image-gallery .bag-image {
+    width: 100%;
+    height: auto; /* La altura se ajusta automáticamente */
+    object-fit: cover;
+    display: block;
+    transition: opacity 1.6s ease-in-out; /* Duración y suavidad */
+}
+.image-gallery .bag-image.active {
+    opacity: 1;
+    position: relative; /* Solo la imagen activa ocupa el flujo */
+}
+
+/* El resto de estilos de los botones */
+.gallery-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: transparent; /* Fondo transparente */
+    color: rgba(243, 247, 0, 0.9); /* Color blanco con un poco de transparencia */
+    border: none;
+    font-size: 2rem; /* Flechas más grandes */
+    cursor: pointer;
+    padding: 0.5rem 1rem; /* Más padding horizontal */
+    z-index: 10;
+    transition: color 0.3s ease; /* Transición para el color al pasar el ratón */
+}
+
+.gallery-btn:hover {
+    color: rgb(243, 247, 0); /* Blanco sólido al pasar el ratón */
+    background-color: rgba(0, 0, 0, 0.3); /* Opcional: un ligero fondo oscuro al pasar el ratón */
+}
+
+.prev-btn {
+    left: 5px;
+}
+
+.next-btn {
+    right: 5px;
+}
+/* Estilos para la modal de imagen */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.modal-image {
+    max-width: 100%;
+    max-height: 100vh;
+    object-fit: contain;
+    display: block;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 3rem;
+    cursor: pointer;
+    line-height: 1;
+    z-index: 2001;
+}
+
+.modal-close-btn:hover {
+    color: #ccc;
+}
+.catalog-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+/* Estilo para la etiqueta de sin stock */
+.out-of-stock-label {
+    background-color: #e74c3c; /* Color rojo */
+    color: white;
+    padding: 2px 6px; /* Padding más pequeño */
+    border-radius: 4px;
+    font-size: 0.7rem; /* Tamaño de fuente más pequeño */
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-left: 10px; /* Separación del nombre del producto */
+    display: inline-block;
+}
+/* Estilos para el Footer */
+.footer {
+    background-color: #e6e3d4; /* El mismo beige de la barra de navegación */
+    color: #6a6659; /* El mismo gris oscuro de los íconos */
+    padding: 20px;
+    text-align: center;
+    margin-top: auto; /* Empuja el footer hacia abajo */
+}
+
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.social-links {
+    margin-top: 10px;
+}
+
+.social-icon {
+    font-size: 1.5rem;
+    color: #6a6659;
+    margin: 0 10px;
+    transition: color 0.3s ease;
+}
+
+.social-icon:hover {
+    color: #333; /* Color más oscuro al pasar el ratón */
+}
+
+/* === AÑADIR ESTOS NUEVOS ESTILOS AL FINAL DE TU ARCHIVO styles.css === */
+
+/* Contenedor para el contenido de la barra de navegación */
+.nav-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 60px;
+    padding: 0 1rem; /* Ajusta el padding para que no esté pegado a los bordes */
+}
+
+/* El menú que se despliega (ajuste para que no interfiera con el nuevo layout) */
+.menu-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    /* Empieza desde la izquierda, cubriendo el ancho completo */
+    left: 0;
+    width: 100%;
+    background-color: #e6e3d4;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+}
+
+/* Ajuste al padding de la barra de navegación principal */
+.main-nav {
+    min-height: 60px; /* o el valor que tengas en móvil */
+    padding: 0; /* El padding ahora lo controla .nav-content */
+}
+.search-container {
+    position: relative;
+    display: flex; /* Coloca input e ícono en línea */
+    align-items: center; /* Centra verticalmente */
+    gap: 10px; /* Separación entre input y ícono */
+    padding: 1rem 0;
+}
+
+.search-container input {
+    flex: 1; /* Ocupa el espacio disponible */
+    padding: 10px 15px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.search-container input:focus {
+    border-color: #a2a2a2;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Icono de búsqueda */
+.search-container .search-icon {
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.2s ease;
+}
+
+.search-container .search-icon:hover {
+    color: #333;
+}
+
+/* Estilos para la lista de sugerencias */
+.suggestions-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    position: absolute; /* Posiciona la lista debajo del input */
+    top: 100%; /* La ubica justo debajo del input */
+    left: 0;
+    width: 100%; /* Mismo ancho que el input */
+    background-color: #ffffff; /* Fondo blanco */
+    border: 1px solid #ddd;
+    border-top: none; /* Sin borde superior para que se una al input */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 500; /* Asegura que esté por encima de otros elementos */
+    max-height: 200px; /* Altura máxima para la lista */
+    overflow-y: auto; /* Scroll si hay muchas sugerencias */
+    border-radius: 0 0 8px 8px; /* Bordes redondeados en la parte inferior */
+}
+
+.suggestion-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    color: #333;
+    border-bottom: 1px solid #eee; /* Separador entre ítems */
+}
+
+.suggestion-item:last-child {
+    border-bottom: none; /* El último ítem no tiene separador */
+}
+
+.suggestion-item:hover {
+    background-color: #f0f0f0; /* Fondo gris claro al pasar el ratón */
+}
+
+/* Ajuste para pantallas grandes */
+@media (min-width: 769px) {
+    .search-container {
+        margin-left: auto;
+        padding: 1rem 0;
+    }
+    .suggestions-list {
+        width: 180px; /* Ajusta el ancho para que coincida con el input expandido */
+    }
+}
