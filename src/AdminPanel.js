@@ -1,4 +1,4 @@
-// src/AdminPanel.js - Versión mejorada sin parpadeo
+// src/AdminPanel.js - Versión completa con edición inline
 import React, { useState, useEffect } from 'react';
 import authService from './authService';
 import { 
@@ -33,7 +33,6 @@ const SafeImage = ({ src, alt, className, style, onError, ...props }) => {
     if (onError) onError(e);
   };
 
-  // Si no hay src o hay error, mostrar placeholder
   if (!src || imageError) {
     return (
       <div 
@@ -116,12 +115,10 @@ const AdminPanel = ({ onLogout }) => {
   const [imageUrl, setImageUrl] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   
-  // Estados para validación
   const newProductValidation = useProductValidation();
   const editProductValidation = useProductValidation();
   const [imageUrlError, setImageUrlError] = useState('');
 
-  // Cargar productos al montar
   useEffect(() => {
     if (!authService.isAuthenticated()) {
       setError('No tienes permisos para acceder a esta página');
@@ -135,14 +132,12 @@ const AdminPanel = ({ onLogout }) => {
     try {
       setLoading(true);
       setError(null);
-      
       console.log('Cargando productos...');
       const productsData = await authService.getProducts();
       setProducts(productsData);
       console.log('Productos cargados exitosamente');
     } catch (error) {
       console.error('Error cargando productos:', error);
-      
       if (error.message.includes('Sesión expirada') || error.message.includes('No autorizado')) {
         setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
       } else {
@@ -153,17 +148,13 @@ const AdminPanel = ({ onLogout }) => {
     }
   };
 
-  // Función para obtener la primera imagen válida de un producto
   const getProductImageUrl = (product) => {
     if (!product.images_url || !Array.isArray(product.images_url) || product.images_url.length === 0) {
       return null;
     }
-    
-    // Buscar la primera imagen que no esté vacía
     return product.images_url.find(url => url && url.trim().length > 0) || null;
   };
 
-  // Manejar cambios en URL de imagen con validación
   const handleImageUrlChange = (e) => {
     const url = e.target.value.trim();
     setImageUrl(url);
@@ -182,7 +173,6 @@ const AdminPanel = ({ onLogout }) => {
     }
   };
 
-  // Agregar imagen con validación
   const addImageToProduct = () => {
     if (!imageUrl) {
       setImageUrlError('Ingresa una URL de imagen');
@@ -232,7 +222,6 @@ const AdminPanel = ({ onLogout }) => {
     setImageUrlError('');
   };
 
-  // Eliminar imagen
   const removeImage = (index, isEditing = false) => {
     if (isEditing && editingProduct) {
       const newImages = [...(editingProduct.imagesUrl || [])];
@@ -251,22 +240,16 @@ const AdminPanel = ({ onLogout }) => {
     }
   };
 
-  // Manejar cambios en formulario nuevo producto
   const handleNewProductChange = (field, value) => {
     const updatedProduct = { ...newProduct, [field]: value };
     setNewProduct(updatedProduct);
-    
-    // Validar campo en tiempo real
     newProductValidation.validateField(field, value, updatedProduct);
     newProductValidation.markFieldTouched(field);
   };
 
-  // Manejar cambios en formulario de edición
   const handleEditProductChange = (field, value) => {
     const updatedProduct = { ...editingProduct, [field]: value };
     setEditingProduct(updatedProduct);
-    
-    // Validar campo en tiempo real
     editProductValidation.validateField(field, value, updatedProduct);
     editProductValidation.markFieldTouched(field);
   };
@@ -274,7 +257,6 @@ const AdminPanel = ({ onLogout }) => {
   const handleCreateProduct = async (e) => {
     e.preventDefault();
     
-    // Validar todo el formulario
     if (!newProductValidation.validateAll(newProduct)) {
       setError('Por favor, corrige los errores en el formulario');
       return;
@@ -282,8 +264,6 @@ const AdminPanel = ({ onLogout }) => {
 
     try {
       setLoading(true);
-      
-      // Formatear precio antes de enviar
       const productToCreate = {
         ...newProduct,
         price: formatUtils.formatPrice(newProduct.price)
@@ -291,7 +271,6 @@ const AdminPanel = ({ onLogout }) => {
       
       await authService.createProduct(productToCreate);
       
-      // Limpiar formulario
       setNewProduct({
         name: '',
         price: '',
@@ -305,7 +284,6 @@ const AdminPanel = ({ onLogout }) => {
       setPreviewUrl('');
       newProductValidation.clearErrors();
       
-      // Recargar productos
       await loadProducts();
       alert('Producto creado exitosamente');
     } catch (error) {
@@ -321,7 +299,6 @@ const AdminPanel = ({ onLogout }) => {
     
     if (!editingProduct) return;
 
-    // Validar todo el formulario
     if (!editProductValidation.validateAll(editingProduct)) {
       setError('Por favor, corrige los errores en el formulario');
       return;
@@ -329,8 +306,6 @@ const AdminPanel = ({ onLogout }) => {
 
     try {
       setLoading(true);
-      
-      // Formatear precio antes de enviar
       const productToUpdate = {
         ...editingProduct,
         price: formatUtils.formatPrice(editingProduct.price)
@@ -338,7 +313,6 @@ const AdminPanel = ({ onLogout }) => {
       
       await authService.updateProduct(productToUpdate);
       
-      // Limpiar estado de edición
       setEditingProductId(null);
       setEditingProduct(null);
       setImageUrl('');
@@ -421,7 +395,171 @@ const AdminPanel = ({ onLogout }) => {
     }
   };
 
-  // Estados de carga y error
+  // Componente de formulario inline para edición
+  const InlineEditForm = ({ product }) => (
+    <tr className="inline-edit-row">
+      <td colSpan="8">
+        <div className="inline-edit-form">
+          <h4>Editando: {product.name}</h4>
+          <form onSubmit={handleUpdateProduct}>
+            <div className="edit-form-grid">
+              <div className="edit-form-section">
+                <h5>Información básica</h5>
+                <div className="form-row">
+                  <input
+                    type="text"
+                    value={editingProduct.name}
+                    onChange={(e) => handleEditProductChange('name', e.target.value)}
+                    placeholder="Nombre del producto"
+                    required
+                    style={{ flex: 1 }}
+                  />
+                  <input
+                    type="text"
+                    value={editingProduct.price}
+                    onChange={(e) => handleEditProductChange('price', e.target.value)}
+                    placeholder="Precio (ej: $25.000)"
+                    style={{ flex: 1 }}
+                  />
+                </div>
+                <div className="form-row">
+                  <select
+                    value={editingProduct.category}
+                    onChange={(e) => handleEditProductChange('category', e.target.value)}
+                    required
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    {VALID_CATEGORIES.map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={editingProduct.inStock}
+                      onChange={(e) => handleEditProductChange('inStock', e.target.checked)}
+                    />
+                    En Stock
+                  </label>
+                </div>
+                <div className="form-row">
+                  <textarea
+                    value={editingProduct.description}
+                    onChange={(e) => handleEditProductChange('description', e.target.value)}
+                    placeholder="Descripción del producto"
+                    rows={3}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div className="edit-form-section">
+                <h5>Gestión de imágenes</h5>
+                <div className="form-row">
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="url"
+                      placeholder="URL de la imagen (ej: https://...)"
+                      value={imageUrl}
+                      onChange={handleImageUrlChange}
+                      style={{
+                        width: '100%',
+                        padding: '1rem 1.25rem',
+                        border: `2px solid ${imageUrlError ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'}`,
+                        borderRadius: 'var(--border-radius)',
+                        fontSize: '0.95rem',
+                        background: 'white',
+                        transition: 'var(--transition)',
+                        boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    {imageUrlError && (
+                      <div style={{ 
+                        color: '#dc3545', 
+                        fontSize: '0.8rem', 
+                        marginTop: '0.25rem',
+                        paddingLeft: '0.25rem'
+                      }}>
+                        {imageUrlError}
+                      </div>
+                    )}
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={addImageToProduct} 
+                    className="add-image-btn"
+                    disabled={!imageUrl || !!imageUrlError}
+                  >
+                    Agregar
+                  </button>
+                </div>
+                
+                {previewUrl && (
+                  <div className="image-preview">
+                    <p>Vista previa:</p>
+                    <img 
+                      src={previewUrl} 
+                      alt="Preview" 
+                      className="preview-image"
+                      onError={() => {
+                        setPreviewUrl('');
+                        setImageUrlError('No se pudo cargar la imagen. Verifica la URL.');
+                      }}
+                    />
+                  </div>
+                )}
+                
+                {editingProduct.imagesUrl && editingProduct.imagesUrl.length > 0 && (
+                  <div className="current-images">
+                    <p>Imágenes actuales ({editingProduct.imagesUrl.length}/10):</p>
+                    <div className="images-grid">
+                      {editingProduct.imagesUrl.map((url, index) => (
+                        <div key={index} className="image-item">
+                          <img 
+                            src={url} 
+                            alt={`Imagen ${index + 1}`}
+                            className="thumbnail"
+                            onError={(e) => {
+                              e.target.style.border = '2px solid #dc3545';
+                              e.target.title = 'Error cargando imagen';
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index, true)}
+                            className="remove-image-btn"
+                            title={`Eliminar imagen ${index + 1}`}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="inline-form-actions">
+              <button 
+                type="submit" 
+                disabled={loading || editProductValidation.hasErrors} 
+                className="save-btn"
+              >
+                {loading ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+              <button type="button" onClick={cancelEditing} className="cancel-btn">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </td>
+    </tr>
+  );
+
   if (error && error.includes('No tienes permisos')) {
     return (
       <div className="admin-panel">
@@ -484,7 +622,7 @@ const AdminPanel = ({ onLogout }) => {
         </div>
       )}
 
-      {/* Guía rápida para imágenes */}
+      {/* Guía para imágenes */}
       {showAddForm && (
         <div style={{
           background: 'linear-gradient(135deg, #e8f4fd 0%, #f0f8ff 100%)',
@@ -513,7 +651,7 @@ const AdminPanel = ({ onLogout }) => {
         </div>
       )}
 
-      {/* Lista de productos con tabla mejorada */}
+      {/* Lista de productos */}
       <div className="products-section">
         <h2>Productos ({products.length})</h2>
         
@@ -539,72 +677,77 @@ const AdminPanel = ({ onLogout }) => {
               </thead>
               <tbody>
                 {products.map(product => (
-                  <tr key={product.id} className={editingProductId === product.id ? 'editing-row' : ''}>
-                    <td>{product.id}</td>
-                    <td>
-                      <SafeImage 
-                        src={getProductImageUrl(product)}
-                        alt={product.name}
-                        style={{ 
-                          width: '60px', 
-                          height: '60px', 
-                          objectFit: 'cover',
-                          borderRadius: '8px'
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <strong>{product.name}</strong>
-                      {(!product.images_url || product.images_url.length === 0) && (
-                        <div style={{ fontSize: '0.7rem', color: '#e67e22', marginTop: '2px' }}>
-                          ⚠️ Sin imágenes
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ 
-                      maxWidth: '200px', 
-                      overflow: 'hidden', 
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {product.description ? (
-                        <span title={product.description}>
-                          {formatUtils.truncateText(product.description, 50)}
-                        </span>
-                      ) : (
-                        <span style={{ color: '#999', fontStyle: 'italic' }}>Sin descripción</span>
-                      )}
-                    </td>
-                    <td>{product.price}</td>
-                    <td>{product.category}</td>
-                    <td>
-                      <button
-                        className={`stock-toggle ${product.in_stock ? 'in-stock' : 'out-stock'}`}
-                        onClick={() => handleToggleStock(product)}
-                        disabled={loading}
-                      >
-                        {product.in_stock ? '✅ En Stock' : '❌ Sin Stock'}
-                      </button>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
+                  <React.Fragment key={product.id}>
+                    <tr className={editingProductId === product.id ? 'editing-row' : ''}>
+                      <td>{product.id}</td>
+                      <td>
+                        <SafeImage 
+                          src={getProductImageUrl(product)}
+                          alt={product.name}
+                          style={{ 
+                            width: '60px', 
+                            height: '60px', 
+                            objectFit: 'cover',
+                            borderRadius: '8px'
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <strong>{product.name}</strong>
+                        {(!product.images_url || product.images_url.length === 0) && (
+                          <div style={{ fontSize: '0.7rem', color: '#e67e22', marginTop: '2px' }}>
+                            ⚠️ Sin imágenes
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ 
+                        maxWidth: '200px', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {product.description ? (
+                          <span title={product.description}>
+                            {formatUtils.truncateText(product.description, 50)}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#999', fontStyle: 'italic' }}>Sin descripción</span>
+                        )}
+                      </td>
+                      <td>{product.price}</td>
+                      <td>{product.category}</td>
+                      <td>
                         <button
-                          onClick={() => editingProductId === product.id ? cancelEditing() : startEditing(product)}
-                          className={`btn-edit ${editingProductId === product.id ? 'editing' : ''}`}
+                          className={`stock-toggle ${product.in_stock ? 'in-stock' : 'out-stock'}`}
+                          onClick={() => handleToggleStock(product)}
                           disabled={loading}
                         >
-                          {editingProductId === product.id ? '❌ Cancelar' : '✏️ Editar'}
+                          {product.in_stock ? '✅ En Stock' : '❌ Sin Stock'}
                         </button>
-                        <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="btn-delete"
-                          disabled={loading || editingProductId === product.id}
-                        >
-                          🗑️ Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                      <td>
+                        <div className="action-buttons">
+                          <button
+                            onClick={() => editingProductId === product.id ? cancelEditing() : startEditing(product)}
+                            className={`btn-edit ${editingProductId === product.id ? 'editing' : ''}`}
+                            disabled={loading}
+                          >
+                            {editingProductId === product.id ? '❌ Cancelar' : '✏️ Editar'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(product.id)}
+                            className="btn-delete"
+                            disabled={loading || editingProductId === product.id}
+                          >
+                            🗑️ Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {editingProductId === product.id && editingProduct && (
+                      <InlineEditForm product={product} />
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
