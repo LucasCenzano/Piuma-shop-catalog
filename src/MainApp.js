@@ -314,6 +314,182 @@ function MainApp() {
             <Footer />
         </div>
     );
+    // debug-connection.js - Script para diagnosticar problemas de conexión
+// Agregar esto temporalmente en MainApp.js o crear como componente
+
+// Componente de Diagnóstico (agregar temporalmente a MainApp.js)
+const ConnectionDebug = () => {
+  const [results, setResults] = useState({});
+  const [testing, setTesting] = useState(false);
+
+  const testEndpoints = async () => {
+    setTesting(true);
+    const tests = {};
+
+    // Test 1: Verificar si las APIs están disponibles
+    console.log('🔍 Iniciando diagnóstico...');
+
+    // Test API de salud (si existe)
+    try {
+      const healthResponse = await fetch('/api/health');
+      tests.health = {
+        status: healthResponse.status,
+        ok: healthResponse.ok,
+        contentType: healthResponse.headers.get('content-type')
+      };
+      console.log('🏥 Health check:', tests.health);
+    } catch (error) {
+      tests.health = { error: error.message };
+      console.log('❌ Health check error:', error);
+    }
+
+    // Test API de auth
+    try {
+      const authResponse = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'test', password: 'test' })
+      });
+      
+      const contentType = authResponse.headers.get('content-type');
+      let responseText = '';
+      
+      if (contentType && contentType.includes('application/json')) {
+        responseText = await authResponse.json();
+      } else {
+        responseText = await authResponse.text();
+      }
+      
+      tests.auth = {
+        status: authResponse.status,
+        ok: authResponse.ok,
+        contentType,
+        response: typeof responseText === 'string' ? responseText.substring(0, 200) : responseText
+      };
+      console.log('🔐 Auth test:', tests.auth);
+    } catch (error) {
+      tests.auth = { error: error.message };
+      console.log('❌ Auth test error:', error);
+    }
+
+    // Test productos públicos
+    try {
+      const productsResponse = await fetch('/api/products');
+      const contentType = productsResponse.headers.get('content-type');
+      
+      tests.products = {
+        status: productsResponse.status,
+        ok: productsResponse.ok,
+        contentType
+      };
+      
+      if (productsResponse.ok && contentType && contentType.includes('application/json')) {
+        const productsData = await productsResponse.json();
+        tests.products.count = Array.isArray(productsData) ? productsData.length : 'No es array';
+      }
+      console.log('📦 Products test:', tests.products);
+    } catch (error) {
+      tests.products = { error: error.message };
+      console.log('❌ Products test error:', error);
+    }
+
+    // Test base de datos
+    try {
+      const dbResponse = await fetch('/api/test-db');
+      tests.database = {
+        status: dbResponse.status,
+        ok: dbResponse.ok,
+        contentType: dbResponse.headers.get('content-type')
+      };
+      console.log('🗄️ Database test:', tests.database);
+    } catch (error) {
+      tests.database = { error: error.message };
+      console.log('❌ Database test error:', error);
+    }
+
+    setResults(tests);
+    setTesting(false);
+  };
+
+  return (
+    <div style={{ 
+      position: 'fixed', 
+      top: '10px', 
+      right: '10px', 
+      background: 'white', 
+      padding: '20px', 
+      border: '2px solid #007bff',
+      borderRadius: '8px',
+      boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+      zIndex: 9999,
+      maxWidth: '400px',
+      fontSize: '14px'
+    }}>
+      <h3>🔍 Diagnóstico de Conexión</h3>
+      
+      <button 
+        onClick={testEndpoints} 
+        disabled={testing}
+        style={{
+          padding: '10px 15px',
+          backgroundColor: testing ? '#ccc' : '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: testing ? 'not-allowed' : 'pointer',
+          marginBottom: '15px'
+        }}
+      >
+        {testing ? 'Probando...' : 'Probar Conexiones'}
+      </button>
+
+      {Object.keys(results).length > 0 && (
+        <div>
+          <h4>Resultados:</h4>
+          {Object.entries(results).map(([endpoint, result]) => (
+            <div key={endpoint} style={{ marginBottom: '10px', padding: '8px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+              <strong>{endpoint.toUpperCase()}:</strong>
+              <br />
+              {result.error ? (
+                <span style={{ color: 'red' }}>❌ Error: {result.error}</span>
+              ) : (
+                <div>
+                  <span style={{ color: result.ok ? 'green' : 'red' }}>
+                    {result.ok ? '✅' : '❌'} Status: {result.status}
+                  </span>
+                  <br />
+                  <small>Tipo: {result.contentType || 'Unknown'}</small>
+                  {result.count !== undefined && <><br /><small>Productos: {result.count}</small></>}
+                  {result.response && (
+                    <>
+                      <br />
+                      <small>Respuesta: {JSON.stringify(result.response).substring(0, 100)}...</small>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button 
+        onClick={() => setResults({})}
+        style={{
+          padding: '5px 10px',
+          backgroundColor: '#6c757d',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '12px'
+        }}
+      >
+        Cerrar
+      </button>
+    </div>
+  );
+};
 }
 
 export default MainApp;

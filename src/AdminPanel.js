@@ -1,13 +1,20 @@
-// AdminPanel.js - Panel de administración con edición inline
+// AdminPanel.js - Panel de administración mejorado con validaciones
 import React, { useState, useEffect } from 'react';
 import authService from './authService';
+import { 
+  useProductValidation, 
+  validateImageUrl, 
+  formatUtils, 
+  VALID_CATEGORIES,
+  errorUtils 
+} from './utils/validationUtils';
 import './AdminPanel.css';
 
 const AdminPanel = ({ onLogout }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingProductId, setEditingProductId] = useState(null); // Cambiado para solo almacenar el ID
+  const [editingProductId, setEditingProductId] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -20,6 +27,11 @@ const AdminPanel = ({ onLogout }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
+  
+  // Estados para validación
+  const newProductValidation = useProductValidation();
+  const editProductValidation = useProductValidation();
+  const [imageUrlError, setImageUrlError] = useState('');
 
   // Cargar productos al montar
   useEffect(() => {
@@ -53,45 +65,76 @@ const AdminPanel = ({ onLogout }) => {
     }
   };
 
-  // Manejar URL de imagen
+  // Manejar cambios en URL de imagen con validación
   const handleImageUrlChange = (e) => {
     const url = e.target.value.trim();
     setImageUrl(url);
+    setImageUrlError('');
 
-    if (
-      url &&
-      (url.startsWith('http://') ||
-      url.startsWith('https://') ||
-      url.startsWith('/assets/'))
-    ) {
-      setPreviewUrl(url);
-    } else {
-      setPreviewUrl('');
-    }
-  };  
-
-  // Agregar imagen a la lista
-  const addImageToProduct = () => {
-    if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
-      if (editingProduct) {
-        setEditingProduct({
-          ...editingProduct,
-          imagesUrl: [...(editingProduct.imagesUrl || []), imageUrl]
-        });
+    if (url) {
+      const validation = validateImageUrl(url);
+      if (!validation.isValid) {
+        setImageUrlError(validation.error);
+        setPreviewUrl('');
       } else {
-        setNewProduct({
-          ...newProduct,
-          imagesUrl: [...newProduct.imagesUrl, imageUrl]
-        });
+        setPreviewUrl(url);
       }
-      setImageUrl('');
-      setPreviewUrl('');
     } else {
-      alert('Por favor ingresa una URL válida (debe empezar con http:// o https://)');
+      setPreviewUrl('');
     }
   };
 
-  // Eliminar imagen de la lista
+  // Agregar imagen con validación
+  const addImageToProduct = () => {
+    if (!imageUrl) {
+      setImageUrlError('Ingresa una URL de imagen');
+      return;
+    }
+
+    const validation = validateImageUrl(imageUrl);
+    if (!validation.isValid) {
+      setImageUrlError(validation.error);
+      return;
+    }
+
+    if (editingProduct) {
+      const currentImages = editingProduct.imagesUrl || [];
+      if (currentImages.includes(imageUrl)) {
+        setImageUrlError('Esta imagen ya está agregada');
+        return;
+      }
+      if (currentImages.length >= 10) {
+        setImageUrlError('Máximo 10 imágenes por producto');
+        return;
+      }
+      
+      setEditingProduct({
+        ...editingProduct,
+        imagesUrl: [...currentImages, imageUrl]
+      });
+    } else {
+      const currentImages = newProduct.imagesUrl || [];
+      if (currentImages.includes(imageUrl)) {
+        setImageUrlError('Esta imagen ya está agregada');
+        return;
+      }
+      if (currentImages.length >= 10) {
+        setImageUrlError('Máximo 10 imágenes por producto');
+        return;
+      }
+      
+      setNewProduct({
+        ...newProduct,
+        imagesUrl: [...currentImages, imageUrl]
+      });
+    }
+    
+    setImageUrl('');
+    setPreviewUrl('');
+    setImageUrlError('');
+  };
+
+  // Eliminar imagen
   const removeImage = (index, isEditing = false) => {
     if (isEditing && editingProduct) {
       const newImages = [...(editingProduct.imagesUrl || [])];
@@ -110,17 +153,45 @@ const AdminPanel = ({ onLogout }) => {
     }
   };
 
+  // Manejar cambios en formulario nuevo producto
+  const handleNewProductChange = (field, value) => {
+    const updatedProduct = { ...newProduct, [field]: value };
+    setNewProduct(updatedProduct);
+    
+    // Validar campo en tiempo real
+    newProductValidation.validateField(field, value, updatedProduct);
+    newProductValidation.markFieldTouched(field);
+  };
+
+  // Manejar cambios en formulario de edición
+  const handleEditProductChange = (field, value) => {
+    const updatedProduct = { ...editingProduct, [field]: value };
+    setEditingProduct(updatedProduct);
+    
+    // Validar campo en tiempo real
+    editProductValidation.validateField(field, value, updatedProduct);
+    editProductValidation.markFieldTouched(field);
+  };
+
   const handleCreateProduct = async (e) => {
     e.preventDefault();
     
-    if (!newProduct.name || !newProduct.category) {
-      alert('Nombre y categoría son requeridos');
+    // Validar todo el formulario
+    if (!newProductValidation.validateAll(newProduct)) {
+      setError('Por favor, corrige los errores en el formulario');
       return;
     }
 
     try {
       setLoading(true);
-      await authService.createProduct(newProduct);
+      
+      // Formatear precio antes de enviar
+      const productToCreate = {
+        ...newProduct,
+        price: formatUtils.formatPrice(newProduct.price)
+      };
+      
+      await authService.createProduct(productToCreate);
       
       // Limpiar formulario
       setNewProduct({
@@ -134,13 +205,14 @@ const AdminPanel = ({ onLogout }) => {
       setShowAddForm(false);
       setImageUrl('');
       setPreviewUrl('');
+      newProductValidation.clearErrors();
       
       // Recargar productos
       await loadProducts();
       alert('Producto creado exitosamente');
     } catch (error) {
       console.error('Error creando producto:', error);
-      alert(`Error creando producto: ${error.message}`);
+      setError(`Error creando producto: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -151,20 +223,35 @@ const AdminPanel = ({ onLogout }) => {
     
     if (!editingProduct) return;
 
+    // Validar todo el formulario
+    if (!editProductValidation.validateAll(editingProduct)) {
+      setError('Por favor, corrige los errores en el formulario');
+      return;
+    }
+
     try {
       setLoading(true);
-      await authService.updateProduct(editingProduct);
+      
+      // Formatear precio antes de enviar
+      const productToUpdate = {
+        ...editingProduct,
+        price: formatUtils.formatPrice(editingProduct.price)
+      };
+      
+      await authService.updateProduct(productToUpdate);
       
       // Limpiar estado de edición
       setEditingProductId(null);
       setEditingProduct(null);
       setImageUrl('');
       setPreviewUrl('');
+      editProductValidation.clearErrors();
+      
       await loadProducts();
       alert('Producto actualizado exitosamente');
     } catch (error) {
       console.error('Error actualizando producto:', error);
-      alert(`Error actualizando producto: ${error.message}`);
+      setError(`Error actualizando producto: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -182,7 +269,7 @@ const AdminPanel = ({ onLogout }) => {
       alert('Producto eliminado exitosamente');
     } catch (error) {
       console.error('Error eliminando producto:', error);
-      alert(`Error eliminando producto: ${error.message}`);
+      setError(`Error eliminando producto: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -199,11 +286,10 @@ const AdminPanel = ({ onLogout }) => {
       await loadProducts();
     } catch (error) {
       console.error('Error actualizando stock:', error);
-      alert(`Error actualizando stock: ${error.message}`);
+      setError(`Error actualizando stock: ${error.message}`);
     }
   };
 
-  // Función mejorada para iniciar edición inline
   const startEditing = (product) => {
     setEditingProductId(product.id);
     setEditingProduct({
@@ -217,14 +303,15 @@ const AdminPanel = ({ onLogout }) => {
     });
     setImageUrl('');
     setPreviewUrl('');
+    editProductValidation.clearErrors();
   };
 
-  // Función para cancelar edición
   const cancelEditing = () => {
     setEditingProductId(null);
     setEditingProduct(null);
     setImageUrl('');
     setPreviewUrl('');
+    editProductValidation.clearErrors();
   };
 
   const handleLogout = () => {
@@ -234,6 +321,159 @@ const AdminPanel = ({ onLogout }) => {
     } else {
       window.location.reload();
     }
+  };
+
+  // Componente de campo con validación
+  const ValidatedInput = ({ 
+    type = "text", 
+    value, 
+    onChange, 
+    placeholder, 
+    required = false, 
+    validation, 
+    fieldName,
+    ...props 
+  }) => {
+    const hasError = validation.hasFieldError(fieldName);
+    const error = validation.getFieldError(fieldName);
+
+    return (
+      <div style={{ flex: 1 }}>
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(fieldName, e.target.value)}
+          placeholder={placeholder}
+          required={required}
+          onBlur={() => validation.markFieldTouched(fieldName)}
+          style={{
+            width: '100%',
+            padding: '1rem 1.25rem',
+            border: `2px solid ${hasError ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'}`,
+            borderRadius: 'var(--border-radius)',
+            fontSize: '0.95rem',
+            minWidth: '220px',
+            background: 'white',
+            transition: 'var(--transition)',
+            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
+            boxSizing: 'border-box'
+          }}
+          {...props}
+        />
+        {hasError && (
+          <div style={{ 
+            color: '#dc3545', 
+            fontSize: '0.8rem', 
+            marginTop: '0.25rem',
+            paddingLeft: '0.25rem'
+          }}>
+            {errorUtils.formatErrorMessage(error)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Componente de textarea con validación
+  const ValidatedTextarea = ({ 
+    value, 
+    onChange, 
+    placeholder, 
+    validation, 
+    fieldName,
+    rows = 3,
+    ...props 
+  }) => {
+    const hasError = validation.hasFieldError(fieldName);
+    const error = validation.getFieldError(fieldName);
+
+    return (
+      <div style={{ width: '100%' }}>
+        <textarea
+          value={value}
+          onChange={(e) => onChange(fieldName, e.target.value)}
+          placeholder={placeholder}
+          rows={rows}
+          onBlur={() => validation.markFieldTouched(fieldName)}
+          style={{
+            width: '100%',
+            padding: '1rem 1.25rem',
+            border: `2px solid ${hasError ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'}`,
+            borderRadius: 'var(--border-radius)',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit',
+            resize: 'vertical',
+            background: 'white',
+            transition: 'var(--transition)',
+            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
+            boxSizing: 'border-box'
+          }}
+          {...props}
+        />
+        {hasError && (
+          <div style={{ 
+            color: '#dc3545', 
+            fontSize: '0.8rem', 
+            marginTop: '0.25rem',
+            paddingLeft: '0.25rem'
+          }}>
+            {errorUtils.formatErrorMessage(error)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Componente de select con validación
+  const ValidatedSelect = ({ 
+    value, 
+    onChange, 
+    options, 
+    validation, 
+    fieldName,
+    placeholder = "Seleccionar...",
+    ...props 
+  }) => {
+    const hasError = validation.hasFieldError(fieldName);
+    const error = validation.getFieldError(fieldName);
+
+    return (
+      <div style={{ flex: 1 }}>
+        <select
+          value={value}
+          onChange={(e) => onChange(fieldName, e.target.value)}
+          onBlur={() => validation.markFieldTouched(fieldName)}
+          style={{
+            width: '100%',
+            padding: '1rem 1.25rem',
+            border: `2px solid ${hasError ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'}`,
+            borderRadius: 'var(--border-radius)',
+            fontSize: '0.95rem',
+            minWidth: '220px',
+            background: 'white',
+            transition: 'var(--transition)',
+            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
+            boxSizing: 'border-box'
+          }}
+          {...props}
+        >
+          <option value="">{placeholder}</option>
+          {options.map(option => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+        {hasError && (
+          <div style={{ 
+            color: '#dc3545', 
+            fontSize: '0.8rem', 
+            marginTop: '0.25rem',
+            paddingLeft: '0.25rem'
+          }}>
+            {errorUtils.formatErrorMessage(error)}
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Componente del formulario de edición inline
@@ -247,49 +487,49 @@ const AdminPanel = ({ onLogout }) => {
               <div className="edit-form-section">
                 <h5>Información básica</h5>
                 <div className="form-row">
-                  <input
-                    type="text"
-                    placeholder="Nombre del producto"
+                  <ValidatedInput
                     value={editingProduct.name}
-                    onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})}
+                    onChange={handleEditProductChange}
+                    placeholder="Nombre del producto"
                     required
+                    validation={editProductValidation}
+                    fieldName="name"
                   />
-                  <input
-                    type="text"
-                    placeholder="Precio (ej: $25.000)"
+                  <ValidatedInput
                     value={editingProduct.price}
-                    onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value})}
+                    onChange={handleEditProductChange}
+                    placeholder="Precio (ej: $25.000)"
+                    validation={editProductValidation}
+                    fieldName="price"
                   />
                 </div>
                 <div className="form-row">
-                  <select
+                  <ValidatedSelect
                     value={editingProduct.category}
-                    onChange={(e) => setEditingProduct({...editingProduct, category: e.target.value})}
+                    onChange={handleEditProductChange}
+                    options={VALID_CATEGORIES}
+                    validation={editProductValidation}
+                    fieldName="category"
+                    placeholder="Seleccionar categoría"
                     required
-                  >
-                    <option value="Bandoleras">Bandoleras</option>
-                    <option value="Carteras">Carteras</option>
-                    <option value="Billeteras">Billeteras</option>
-                    <option value="Mochilas">Mochilas</option>
-                    <option value="Riñoneras">Riñoneras</option>
-                    <option value="Porta Celulares">Porta Celulares</option>
-                  </select>
+                  />
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
                       checked={editingProduct.inStock}
-                      onChange={(e) => setEditingProduct({...editingProduct, inStock: e.target.checked})}
+                      onChange={(e) => handleEditProductChange('inStock', e.target.checked)}
                     />
                     En Stock
                   </label>
                 </div>
                 <div className="form-row">
-                  <textarea
-                    placeholder="Descripción del producto"
+                  <ValidatedTextarea
                     value={editingProduct.description}
-                    onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})}
-                    rows="3"
-                    className="description-textarea"
+                    onChange={handleEditProductChange}
+                    placeholder="Descripción del producto"
+                    validation={editProductValidation}
+                    fieldName="description"
+                    rows={3}
                   />
                 </div>
               </div>
@@ -297,14 +537,41 @@ const AdminPanel = ({ onLogout }) => {
               <div className="edit-form-section">
                 <h5>Gestión de imágenes</h5>
                 <div className="form-row">
-                  <input
-                    type="url"
-                    placeholder="URL de la imagen (ej: https://...)"
-                    value={imageUrl}
-                    onChange={handleImageUrlChange}
-                    className="image-input"
-                  />
-                  <button type="button" onClick={addImageToProduct} className="add-image-btn">
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="url"
+                      placeholder="URL de la imagen (ej: https://...)"
+                      value={imageUrl}
+                      onChange={handleImageUrlChange}
+                      style={{
+                        width: '100%',
+                        padding: '1rem 1.25rem',
+                        border: `2px solid ${imageUrlError ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'}`,
+                        borderRadius: 'var(--border-radius)',
+                        fontSize: '0.95rem',
+                        background: 'white',
+                        transition: 'var(--transition)',
+                        boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    {imageUrlError && (
+                      <div style={{ 
+                        color: '#dc3545', 
+                        fontSize: '0.8rem', 
+                        marginTop: '0.25rem',
+                        paddingLeft: '0.25rem'
+                      }}>
+                        {imageUrlError}
+                      </div>
+                    )}
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={addImageToProduct} 
+                    className="add-image-btn"
+                    disabled={!imageUrl || !!imageUrlError}
+                  >
                     Agregar
                   </button>
                 </div>
@@ -318,7 +585,7 @@ const AdminPanel = ({ onLogout }) => {
                       className="preview-image"
                       onError={() => {
                         setPreviewUrl('');
-                        alert('No se pudo cargar la imagen. Verifica la URL.');
+                        setImageUrlError('No se pudo cargar la imagen. Verifica la URL.');
                       }}
                     />
                   </div>
@@ -326,7 +593,7 @@ const AdminPanel = ({ onLogout }) => {
                 
                 {editingProduct.imagesUrl && editingProduct.imagesUrl.length > 0 && (
                   <div className="current-images">
-                    <p>Imágenes actuales:</p>
+                    <p>Imágenes actuales ({editingProduct.imagesUrl.length}/10):</p>
                     <div className="images-grid">
                       {editingProduct.imagesUrl.map((url, index) => (
                         <div key={index} className="image-item">
@@ -334,11 +601,16 @@ const AdminPanel = ({ onLogout }) => {
                             src={url} 
                             alt={`Imagen ${index + 1}`}
                             className="thumbnail"
+                            onError={(e) => {
+                              e.target.style.border = '2px solid #dc3545';
+                              e.target.title = 'Error cargando imagen';
+                            }}
                           />
                           <button
                             type="button"
                             onClick={() => removeImage(index, true)}
                             className="remove-image-btn"
+                            title={`Eliminar imagen ${index + 1}`}
                           >
                             ×
                           </button>
@@ -351,7 +623,11 @@ const AdminPanel = ({ onLogout }) => {
             </div>
             
             <div className="inline-form-actions">
-              <button type="submit" disabled={loading} className="save-btn">
+              <button 
+                type="submit" 
+                disabled={loading || editProductValidation.hasErrors} 
+                className="save-btn"
+              >
                 {loading ? 'Guardando...' : 'Guardar Cambios'}
               </button>
               <button type="button" onClick={cancelEditing} className="cancel-btn">
@@ -396,7 +672,20 @@ const AdminPanel = ({ onLogout }) => {
         <h1>Panel de Administración - Piuma</h1>
         <div className="admin-actions">
           <button 
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={() => {
+              setShowAddForm(!showAddForm);
+              if (showAddForm) {
+                newProductValidation.clearErrors();
+                setNewProduct({
+                  name: '',
+                  price: '',
+                  category: '',
+                  description: '',
+                  inStock: true,
+                  imagesUrl: []
+                });
+              }
+            }}
             className="btn-primary"
           >
             {showAddForm ? 'Cancelar' : 'Agregar Producto'}
@@ -410,7 +699,7 @@ const AdminPanel = ({ onLogout }) => {
       {error && (
         <div className="error-message">
           <p>{error}</p>
-          <button onClick={loadProducts}>Reintentar</button>
+          <button onClick={() => setError(null)}>Cerrar</button>
         </div>
       )}
 
@@ -420,127 +709,131 @@ const AdminPanel = ({ onLogout }) => {
           <h3>Agregar Nuevo Producto</h3>
           <form onSubmit={handleCreateProduct}>
             <div className="form-row">
-              <input
-                type="text"
-                placeholder="Nombre del producto"
+              <ValidatedInput
                 value={newProduct.name}
-                onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                onChange={handleNewProductChange}
+                placeholder="Nombre del producto"
                 required
+                validation={newProductValidation}
+                fieldName="name"
               />
-              <input
-                type="text"
-                placeholder="Precio (ej: $25.000)"
+              <ValidatedInput
                 value={newProduct.price}
-                onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
+                onChange={handleNewProductChange}
+                placeholder="Precio (ej: $25.000)"
+                validation={newProductValidation}
+                fieldName="price"
               />
             </div>
             <div className="form-row">
-              <select
+              <ValidatedSelect
                 value={newProduct.category}
-                onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
+                onChange={handleNewProductChange}
+                options={VALID_CATEGORIES}
+                validation={newProductValidation}
+                fieldName="category"
+                placeholder="Seleccionar categoría"
                 required
-              >
-                <option value="">Seleccionar categoría</option>
-                <option value="Bandoleras">Bandoleras</option>
-                <option value="Carteras">Carteras</option>
-                <option value="Billeteras">Billeteras</option>
-                <option value="Mochilas">Mochilas</option>
-                <option value="Riñoneras">Riñoneras</option>
-                <option value="Porta Celulares">Porta Celulares</option>
-              </select>
-              <label>
+              />
+              <label className="checkbox-label">
                 <input
                   type="checkbox"
                   checked={newProduct.inStock}
-                  onChange={(e) => setNewProduct({...newProduct, inStock: e.target.checked})}
+                  onChange={(e) => handleNewProductChange('inStock', e.target.checked)}
                 />
                 En Stock
               </label>
             </div>
             
             <div className="form-row">
-              <textarea
-                placeholder="Descripción del producto"
+              <ValidatedTextarea
                 value={newProduct.description}
-                onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                rows="3"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '2px solid #e1e4e8',
-                  borderRadius: '6px',
-                  fontSize: '1rem',
-                  fontFamily: 'inherit',
-                  resize: 'vertical'
-                }}
+                onChange={handleNewProductChange}
+                placeholder="Descripción del producto"
+                validation={newProductValidation}
+                fieldName="description"
+                rows={3}
               />
             </div>
             
             {/* Sección de imágenes */}
-            <div className="image-section" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
+            <div className="image-section">
               <h4>Imágenes del producto</h4>
               <div className="form-row">
-                <input
-                  type="url"
-                  placeholder="URL de la imagen (ej: https://...)"
-                  value={imageUrl}
-                  onChange={handleImageUrlChange}
-                  style={{ flex: 1 }}
-                />
-                <button type="button" onClick={addImageToProduct} style={{
-                  padding: '0.75rem 1rem',
-                  backgroundColor: '#4CAF50',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}>
+                <div style={{ flex: 1 }}>
+                  <input
+                    type="url"
+                    placeholder="URL de la imagen (ej: https://...)"
+                    value={imageUrl}
+                    onChange={handleImageUrlChange}
+                    style={{
+                      width: '100%',
+                      padding: '1rem 1.25rem',
+                      border: `2px solid ${imageUrlError ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'}`,
+                      borderRadius: 'var(--border-radius)',
+                      fontSize: '0.95rem',
+                      background: 'white',
+                      transition: 'var(--transition)',
+                      boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  {imageUrlError && (
+                    <div style={{ 
+                      color: '#dc3545', 
+                      fontSize: '0.8rem', 
+                      marginTop: '0.25rem',
+                      paddingLeft: '0.25rem'
+                    }}>
+                      {imageUrlError}
+                    </div>
+                  )}
+                </div>
+                <button 
+                  type="button" 
+                  onClick={addImageToProduct} 
+                  className="add-image-btn"
+                  disabled={!imageUrl || !!imageUrlError}
+                >
                   Agregar Imagen
                 </button>
               </div>
               
               {previewUrl && (
-                <div style={{ marginTop: '1rem' }}>
+                <div className="image-preview">
                   <p>Vista previa:</p>
                   <img 
                     src={previewUrl} 
                     alt="Preview" 
-                    style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+                    className="preview-image"
                     onError={() => {
                       setPreviewUrl('');
-                      alert('No se pudo cargar la imagen. Verifica la URL.');
+                      setImageUrlError('No se pudo cargar la imagen. Verifica la URL.');
                     }}
                   />
                 </div>
               )}
               
               {newProduct.imagesUrl.length > 0 && (
-                <div style={{ marginTop: '1rem' }}>
-                  <p>Imágenes agregadas:</p>
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <div className="current-images">
+                  <p>Imágenes agregadas ({newProduct.imagesUrl.length}/10):</p>
+                  <div className="images-grid">
                     {newProduct.imagesUrl.map((url, index) => (
-                      <div key={index} style={{ position: 'relative' }}>
+                      <div key={index} className="image-item">
                         <img 
                           src={url} 
                           alt={`Imagen ${index + 1}`}
-                          style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px' }}
+                          className="thumbnail"
+                          onError={(e) => {
+                            e.target.style.border = '2px solid #dc3545';
+                            e.target.title = 'Error cargando imagen';
+                          }}
                         />
                         <button
                           type="button"
                           onClick={() => removeImage(index)}
-                          style={{
-                            position: 'absolute',
-                            top: '-5px',
-                            right: '-5px',
-                            backgroundColor: 'red',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '20px',
-                            height: '20px',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
+                          className="remove-image-btn"
+                          title={`Eliminar imagen ${index + 1}`}
                         >
                           ×
                         </button>
@@ -552,14 +845,22 @@ const AdminPanel = ({ onLogout }) => {
             </div>
             
             <div className="form-actions">
-              <button type="submit" disabled={loading}>
+              <button 
+                type="submit" 
+                disabled={loading || newProductValidation.hasErrors}
+              >
                 {loading ? 'Creando...' : 'Crear Producto'}
               </button>
-              <button type="button" onClick={() => {
-                setShowAddForm(false);
-                setImageUrl('');
-                setPreviewUrl('');
-              }}>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowAddForm(false);
+                  setImageUrl('');
+                  setPreviewUrl('');
+                  setImageUrlError('');
+                  newProductValidation.clearErrors();
+                }}
+              >
                 Cancelar
               </button>
             </div>
@@ -608,7 +909,7 @@ const AdminPanel = ({ onLogout }) => {
                               borderRadius: '4px' 
                             }}
                             onError={(e) => {
-                              e.target.src = 'public/assets/sin-imagen.png';
+                              e.target.src = '/assets/sin-imagen.png';
                             }}
                           />
                         ) : (
@@ -636,9 +937,7 @@ const AdminPanel = ({ onLogout }) => {
                       }}>
                         {product.description ? (
                           <span title={product.description}>
-                            {product.description.length > 50 
-                              ? product.description.substring(0, 50) + '...' 
-                              : product.description}
+                            {formatUtils.truncateText(product.description, 50)}
                           </span>
                         ) : (
                           <span style={{ color: '#999', fontStyle: 'italic' }}>Sin descripción</span>

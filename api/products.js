@@ -1,4 +1,4 @@
-// api/products.js - API público actualizado con descripción
+// api/products.js - API publica para obtener productos
 const { Pool } = require('pg');
 
 const pool = new Pool({
@@ -28,11 +28,14 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
+  console.log(`📦 API Products: ${req.method} ${req.url}`);
+
   try {
     switch (req.method) {
       case 'GET':
         if (req.query.id) {
-          // Obtener un producto específico
+          // Obtener un producto especifico
+          console.log(`🔍 Buscando producto ID: ${req.query.id}`);
           const result = await query(
             'SELECT * FROM products WHERE id = $1',
             [parseInt(req.query.id)]
@@ -53,9 +56,11 @@ module.exports = async function handler(req, res) {
             }
           }
           
+          console.log(`✅ Producto encontrado: ${product.name}`);
           return res.status(200).json(product);
         } else {
-          // Obtener todos los productos con descripción
+          // Obtener todos los productos
+          console.log('📋 Obteniendo todos los productos...');
           const result = await query(`
             SELECT 
               id,
@@ -68,7 +73,11 @@ module.exports = async function handler(req, res) {
               created_at,
               updated_at
             FROM products 
-            ORDER BY category, name
+            ORDER BY 
+              CASE WHEN featured = true THEN 0 ELSE 1 END,
+              sort_order ASC,
+              category ASC, 
+              name ASC
           `);
           
           const products = result.rows.map(product => {
@@ -83,12 +92,13 @@ module.exports = async function handler(req, res) {
             return product;
           });
           
-          console.log(`Enviando ${products.length} productos públicos`);
+          console.log(`✅ Enviando ${products.length} productos publicos`);
           return res.status(200).json(products);
         }
 
       case 'PUT':
-        // Actualizar solo el stock de un producto (para el frontend público)
+        // Actualizar solo el stock de un producto
+        console.log('🔄 Actualizando stock...');
         const { id, inStock } = req.body;
         
         if (!id) {
@@ -119,6 +129,7 @@ module.exports = async function handler(req, res) {
           }
         }
 
+        console.log(`✅ Stock actualizado: ${updatedProduct.name}`);
         return res.status(200).json({
           message: 'Stock actualizado exitosamente',
           product: updatedProduct
@@ -129,10 +140,16 @@ module.exports = async function handler(req, res) {
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
   } catch (error) {
-    console.error('Error en products API:', error);
+    console.error('❌ Error en products API:', error);
+    
+    if (error.code) {
+      console.error('📊 Codigo de error DB:', error.code);
+    }
+    
     return res.status(500).json({ 
       error: 'Error interno del servidor',
-      details: error.message
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Error de base de datos',
+      code: error.code || 'UNKNOWN_ERROR'
     });
   }
 };
