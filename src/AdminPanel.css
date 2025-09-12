@@ -1380,3 +1380,217 @@ textarea:focus {
     max-height: 30px;
   }
 }
+/* Agregar estos estilos al final de AdminPanel.css */
+
+/* ========================================
+   COMPONENTE SAFE IMAGE
+   ======================================== */
+
+.safe-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 2px dashed #dee2e6;
+  border-radius: var(--border-radius);
+  color: #6c757d;
+  transition: var(--transition);
+  font-family: 'Montserrat', sans-serif;
+}
+
+.safe-image-placeholder:hover {
+  border-color: #adb5bd;
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+}
+
+.safe-image-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  color: #6c757d;
+  animation: pulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ========================================
+   GUÍA DE IMÁGENES
+   ======================================== */
+
+.image-guide {
+  background: linear-gradient(135deg, #e8f4fd 0%, #f0f8ff 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--border-radius-large);
+  padding: 2rem;
+  margin: 1rem 2.5rem;
+  animation: fadeIn 0.6s ease forwards;
+}
+
+.image-guide h4 {
+  font-family: 'Didot', serif;
+  color: #1e40af;
+  margin: 0 0 1.5rem 0;
+  font-size: 1.3rem;
+  text-align: center;
+  position: relative;
+}
+
+.image-guide h4::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 2px;
+  background: #3b82f6;
+}
+
+.image-services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.image-service-card {
+  padding: 1.25rem;
+  background: white;
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  box-shadow: var(--shadow-soft);
+  transition: var(--transition);
+}
+
+.image-service-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.image-service-card strong {
+  display: block;
+  color: #1e40af;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+}
+
+.image-service-card small {
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* ========================================
+   MEJORAS TABLA PRODUCTOS
+   ======================================== */
+
+.product-name-cell {
+  position: relative;
+}
+
+.missing-images-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  color: #e67e22;
+  margin-top: 0.25rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.missing-images-warning::before {
+  content: '⚠️';
+  font-size: 0.8rem;
+}
+
+/* Indicadores de estado en la tabla */
+.product-status-indicators {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.status-indicator {
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-indicator.no-images {
+  background: rgba(231, 126, 60, 0.1);
+  color: #e67e22;
+  border: 1px solid rgba(231, 126, 60, 0.3);
+}
+
+.status-indicator.no-description {
+  background: rgba(156, 163, 175, 0.1);
+  color: #6b7280;
+  border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
+.status-indicator.complete {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* ========================================
+   RESPONSIVE MEJORAS
+   ======================================== */
+
+@media (max-width: 768px) {
+  .image-guide {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .image-services-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .image-service-card {
+    padding: 1rem;
+  }
+  
+  .missing-images-warning {
+    font-size: 0.65rem;
+  }
+  
+  .status-indicator {
+    font-size: 0.55rem;
+    padding: 0.1rem 0.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .image-guide h4 {
+    font-size: 1.1rem;
+  }
+  
+  .product-status-indicators {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .status-indicator {
+    text-align: center;
+  }
+}

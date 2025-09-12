@@ -1,4 +1,4 @@
-// AdminPanel.js - Panel de administración mejorado con validaciones
+// src/AdminPanel.js - Versión mejorada sin parpadeo
 import React, { useState, useEffect } from 'react';
 import authService from './authService';
 import { 
@@ -9,6 +9,94 @@ import {
   errorUtils 
 } from './utils/validationUtils';
 import './AdminPanel.css';
+
+// Componente para imagen con fallback mejorado
+const SafeImage = ({ src, alt, className, style, onError, ...props }) => {
+  const [imageSrc, setImageSrc] = useState(src);
+  const [imageError, setImageError] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setImageSrc(src);
+    setImageError(false);
+    setLoading(true);
+  }, [src]);
+
+  const handleImageLoad = () => {
+    setLoading(false);
+    setImageError(false);
+  };
+
+  const handleImageError = (e) => {
+    setLoading(false);
+    setImageError(true);
+    if (onError) onError(e);
+  };
+
+  // Si no hay src o hay error, mostrar placeholder
+  if (!src || imageError) {
+    return (
+      <div 
+        className={className} 
+        style={{
+          ...style,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f8f9fa',
+          border: '2px dashed #dee2e6',
+          color: '#6c757d',
+          fontSize: style?.width ? (parseInt(style.width) < 100 ? '0.7rem' : '0.9rem') : '0.9rem',
+          textAlign: 'center',
+          position: 'relative'
+        }}
+        {...props}
+      >
+        <div>
+          <div style={{ marginBottom: '4px' }}>📷</div>
+          <div style={{ fontSize: '0.8em' }}>Sin imagen</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      {loading && (
+        <div 
+          className={className}
+          style={{
+            ...style,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#f8f9fa',
+            color: '#6c757d',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            zIndex: 1
+          }}
+        >
+          <div style={{ fontSize: '0.8rem' }}>⏳</div>
+        </div>
+      )}
+      <img
+        src={imageSrc}
+        alt={alt}
+        className={className}
+        style={{
+          ...style,
+          opacity: loading ? 0 : 1,
+          transition: 'opacity 0.3s ease'
+        }}
+        onLoad={handleImageLoad}
+        onError={handleImageError}
+        {...props}
+      />
+    </div>
+  );
+};
 
 const AdminPanel = ({ onLogout }) => {
   const [products, setProducts] = useState([]);
@@ -63,6 +151,16 @@ const AdminPanel = ({ onLogout }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función para obtener la primera imagen válida de un producto
+  const getProductImageUrl = (product) => {
+    if (!product.images_url || !Array.isArray(product.images_url) || product.images_url.length === 0) {
+      return null;
+    }
+    
+    // Buscar la primera imagen que no esté vacía
+    return product.images_url.find(url => url && url.trim().length > 0) || null;
   };
 
   // Manejar cambios en URL de imagen con validación
@@ -323,323 +421,6 @@ const AdminPanel = ({ onLogout }) => {
     }
   };
 
-  // Componente de campo con validación
-  const ValidatedInput = ({ 
-    type = "text", 
-    value, 
-    onChange, 
-    placeholder, 
-    required = false, 
-    validation, 
-    fieldName,
-    ...props 
-  }) => {
-    const hasError = validation.hasFieldError(fieldName);
-    const error = validation.getFieldError(fieldName);
-
-    return (
-      <div style={{ flex: 1 }}>
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(fieldName, e.target.value)}
-          placeholder={placeholder}
-          required={required}
-          onBlur={() => validation.markFieldTouched(fieldName)}
-          style={{
-            width: '100%',
-            padding: '1rem 1.25rem',
-            border: `2px solid ${hasError ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'}`,
-            borderRadius: 'var(--border-radius)',
-            fontSize: '0.95rem',
-            minWidth: '220px',
-            background: 'white',
-            transition: 'var(--transition)',
-            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
-            boxSizing: 'border-box'
-          }}
-          {...props}
-        />
-        {hasError && (
-          <div style={{ 
-            color: '#dc3545', 
-            fontSize: '0.8rem', 
-            marginTop: '0.25rem',
-            paddingLeft: '0.25rem'
-          }}>
-            {errorUtils.formatErrorMessage(error)}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Componente de textarea con validación
-  const ValidatedTextarea = ({ 
-    value, 
-    onChange, 
-    placeholder, 
-    validation, 
-    fieldName,
-    rows = 3,
-    ...props 
-  }) => {
-    const hasError = validation.hasFieldError(fieldName);
-    const error = validation.getFieldError(fieldName);
-
-    return (
-      <div style={{ width: '100%' }}>
-        <textarea
-          value={value}
-          onChange={(e) => onChange(fieldName, e.target.value)}
-          placeholder={placeholder}
-          rows={rows}
-          onBlur={() => validation.markFieldTouched(fieldName)}
-          style={{
-            width: '100%',
-            padding: '1rem 1.25rem',
-            border: `2px solid ${hasError ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'}`,
-            borderRadius: 'var(--border-radius)',
-            fontSize: '0.95rem',
-            fontFamily: 'inherit',
-            resize: 'vertical',
-            background: 'white',
-            transition: 'var(--transition)',
-            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
-            boxSizing: 'border-box'
-          }}
-          {...props}
-        />
-        {hasError && (
-          <div style={{ 
-            color: '#dc3545', 
-            fontSize: '0.8rem', 
-            marginTop: '0.25rem',
-            paddingLeft: '0.25rem'
-          }}>
-            {errorUtils.formatErrorMessage(error)}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Componente de select con validación
-  const ValidatedSelect = ({ 
-    value, 
-    onChange, 
-    options, 
-    validation, 
-    fieldName,
-    placeholder = "Seleccionar...",
-    ...props 
-  }) => {
-    const hasError = validation.hasFieldError(fieldName);
-    const error = validation.getFieldError(fieldName);
-
-    return (
-      <div style={{ flex: 1 }}>
-        <select
-          value={value}
-          onChange={(e) => onChange(fieldName, e.target.value)}
-          onBlur={() => validation.markFieldTouched(fieldName)}
-          style={{
-            width: '100%',
-            padding: '1rem 1.25rem',
-            border: `2px solid ${hasError ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'}`,
-            borderRadius: 'var(--border-radius)',
-            fontSize: '0.95rem',
-            minWidth: '220px',
-            background: 'white',
-            transition: 'var(--transition)',
-            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
-            boxSizing: 'border-box'
-          }}
-          {...props}
-        >
-          <option value="">{placeholder}</option>
-          {options.map(option => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-        {hasError && (
-          <div style={{ 
-            color: '#dc3545', 
-            fontSize: '0.8rem', 
-            marginTop: '0.25rem',
-            paddingLeft: '0.25rem'
-          }}>
-            {errorUtils.formatErrorMessage(error)}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Componente del formulario de edición inline
-  const InlineEditForm = ({ product }) => (
-    <tr className="inline-edit-row">
-      <td colSpan="8">
-        <div className="inline-edit-form">
-          <h4>Editando: {product.name}</h4>
-          <form onSubmit={handleUpdateProduct}>
-            <div className="edit-form-grid">
-              <div className="edit-form-section">
-                <h5>Información básica</h5>
-                <div className="form-row">
-                  <ValidatedInput
-                    value={editingProduct.name}
-                    onChange={handleEditProductChange}
-                    placeholder="Nombre del producto"
-                    required
-                    validation={editProductValidation}
-                    fieldName="name"
-                  />
-                  <ValidatedInput
-                    value={editingProduct.price}
-                    onChange={handleEditProductChange}
-                    placeholder="Precio (ej: $25.000)"
-                    validation={editProductValidation}
-                    fieldName="price"
-                  />
-                </div>
-                <div className="form-row">
-                  <ValidatedSelect
-                    value={editingProduct.category}
-                    onChange={handleEditProductChange}
-                    options={VALID_CATEGORIES}
-                    validation={editProductValidation}
-                    fieldName="category"
-                    placeholder="Seleccionar categoría"
-                    required
-                  />
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={editingProduct.inStock}
-                      onChange={(e) => handleEditProductChange('inStock', e.target.checked)}
-                    />
-                    En Stock
-                  </label>
-                </div>
-                <div className="form-row">
-                  <ValidatedTextarea
-                    value={editingProduct.description}
-                    onChange={handleEditProductChange}
-                    placeholder="Descripción del producto"
-                    validation={editProductValidation}
-                    fieldName="description"
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              <div className="edit-form-section">
-                <h5>Gestión de imágenes</h5>
-                <div className="form-row">
-                  <div style={{ flex: 1 }}>
-                    <input
-                      type="url"
-                      placeholder="URL de la imagen (ej: https://...)"
-                      value={imageUrl}
-                      onChange={handleImageUrlChange}
-                      style={{
-                        width: '100%',
-                        padding: '1rem 1.25rem',
-                        border: `2px solid ${imageUrlError ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'}`,
-                        borderRadius: 'var(--border-radius)',
-                        fontSize: '0.95rem',
-                        background: 'white',
-                        transition: 'var(--transition)',
-                        boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                    {imageUrlError && (
-                      <div style={{ 
-                        color: '#dc3545', 
-                        fontSize: '0.8rem', 
-                        marginTop: '0.25rem',
-                        paddingLeft: '0.25rem'
-                      }}>
-                        {imageUrlError}
-                      </div>
-                    )}
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={addImageToProduct} 
-                    className="add-image-btn"
-                    disabled={!imageUrl || !!imageUrlError}
-                  >
-                    Agregar
-                  </button>
-                </div>
-                
-                {previewUrl && (
-                  <div className="image-preview">
-                    <p>Vista previa:</p>
-                    <img 
-                      src={previewUrl} 
-                      alt="Preview" 
-                      className="preview-image"
-                      onError={() => {
-                        setPreviewUrl('');
-                        setImageUrlError('No se pudo cargar la imagen. Verifica la URL.');
-                      }}
-                    />
-                  </div>
-                )}
-                
-                {editingProduct.imagesUrl && editingProduct.imagesUrl.length > 0 && (
-                  <div className="current-images">
-                    <p>Imágenes actuales ({editingProduct.imagesUrl.length}/10):</p>
-                    <div className="images-grid">
-                      {editingProduct.imagesUrl.map((url, index) => (
-                        <div key={index} className="image-item">
-                          <img 
-                            src={url} 
-                            alt={`Imagen ${index + 1}`}
-                            className="thumbnail"
-                            onError={(e) => {
-                              e.target.style.border = '2px solid #dc3545';
-                              e.target.title = 'Error cargando imagen';
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index, true)}
-                            className="remove-image-btn"
-                            title={`Eliminar imagen ${index + 1}`}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="inline-form-actions">
-              <button 
-                type="submit" 
-                disabled={loading || editProductValidation.hasErrors} 
-                className="save-btn"
-              >
-                {loading ? 'Guardando...' : 'Guardar Cambios'}
-              </button>
-              <button type="button" onClick={cancelEditing} className="cancel-btn">
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
-      </td>
-    </tr>
-  );
-
   // Estados de carga y error
   if (error && error.includes('No tienes permisos')) {
     return (
@@ -703,172 +484,36 @@ const AdminPanel = ({ onLogout }) => {
         </div>
       )}
 
-      {/* Formulario para agregar producto */}
+      {/* Guía rápida para imágenes */}
       {showAddForm && (
-        <div className="product-form">
-          <h3>Agregar Nuevo Producto</h3>
-          <form onSubmit={handleCreateProduct}>
-            <div className="form-row">
-              <ValidatedInput
-                value={newProduct.name}
-                onChange={handleNewProductChange}
-                placeholder="Nombre del producto"
-                required
-                validation={newProductValidation}
-                fieldName="name"
-              />
-              <ValidatedInput
-                value={newProduct.price}
-                onChange={handleNewProductChange}
-                placeholder="Precio (ej: $25.000)"
-                validation={newProductValidation}
-                fieldName="price"
-              />
+        <div style={{
+          background: 'linear-gradient(135deg, #e8f4fd 0%, #f0f8ff 100%)',
+          padding: '1.5rem',
+          margin: '1rem 2.5rem',
+          borderRadius: '12px',
+          border: '1px solid rgba(59, 130, 246, 0.2)'
+        }}>
+          <h4 style={{ margin: '0 0 1rem 0', color: '#1e40af', fontFamily: 'Didot, serif' }}>
+            💡 ¿Dónde conseguir URLs de imágenes?
+          </h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            <div style={{ padding: '1rem', background: 'white', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+              <strong>📸 Imgur (Recomendado)</strong><br/>
+              <small>1. Ve a imgur.com<br/>2. Sube tu imagen<br/>3. Copia "Direct Link"</small>
             </div>
-            <div className="form-row">
-              <ValidatedSelect
-                value={newProduct.category}
-                onChange={handleNewProductChange}
-                options={VALID_CATEGORIES}
-                validation={newProductValidation}
-                fieldName="category"
-                placeholder="Seleccionar categoría"
-                required
-              />
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={newProduct.inStock}
-                  onChange={(e) => handleNewProductChange('inStock', e.target.checked)}
-                />
-                En Stock
-              </label>
+            <div style={{ padding: '1rem', background: 'white', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+              <strong>☁️ Cloudinary</strong><br/>
+              <small>1. Regístrate gratis<br/>2. Sube imagen<br/>3. Copia URL optimizada</small>
             </div>
-            
-            <div className="form-row">
-              <ValidatedTextarea
-                value={newProduct.description}
-                onChange={handleNewProductChange}
-                placeholder="Descripción del producto"
-                validation={newProductValidation}
-                fieldName="description"
-                rows={3}
-              />
+            <div style={{ padding: '1rem', background: 'white', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+              <strong>🖼️ ImgBB</strong><br/>
+              <small>1. Ve a imgbb.com<br/>2. Sube sin registro<br/>3. Copia "Direct link"</small>
             </div>
-            
-            {/* Sección de imágenes */}
-            <div className="image-section">
-              <h4>Imágenes del producto</h4>
-              <div className="form-row">
-                <div style={{ flex: 1 }}>
-                  <input
-                    type="url"
-                    placeholder="URL de la imagen (ej: https://...)"
-                    value={imageUrl}
-                    onChange={handleImageUrlChange}
-                    style={{
-                      width: '100%',
-                      padding: '1rem 1.25rem',
-                      border: `2px solid ${imageUrlError ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'}`,
-                      borderRadius: 'var(--border-radius)',
-                      fontSize: '0.95rem',
-                      background: 'white',
-                      transition: 'var(--transition)',
-                      boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                  {imageUrlError && (
-                    <div style={{ 
-                      color: '#dc3545', 
-                      fontSize: '0.8rem', 
-                      marginTop: '0.25rem',
-                      paddingLeft: '0.25rem'
-                    }}>
-                      {imageUrlError}
-                    </div>
-                  )}
-                </div>
-                <button 
-                  type="button" 
-                  onClick={addImageToProduct} 
-                  className="add-image-btn"
-                  disabled={!imageUrl || !!imageUrlError}
-                >
-                  Agregar Imagen
-                </button>
-              </div>
-              
-              {previewUrl && (
-                <div className="image-preview">
-                  <p>Vista previa:</p>
-                  <img 
-                    src={previewUrl} 
-                    alt="Preview" 
-                    className="preview-image"
-                    onError={() => {
-                      setPreviewUrl('');
-                      setImageUrlError('No se pudo cargar la imagen. Verifica la URL.');
-                    }}
-                  />
-                </div>
-              )}
-              
-              {newProduct.imagesUrl.length > 0 && (
-                <div className="current-images">
-                  <p>Imágenes agregadas ({newProduct.imagesUrl.length}/10):</p>
-                  <div className="images-grid">
-                    {newProduct.imagesUrl.map((url, index) => (
-                      <div key={index} className="image-item">
-                        <img 
-                          src={url} 
-                          alt={`Imagen ${index + 1}`}
-                          className="thumbnail"
-                          onError={(e) => {
-                            e.target.style.border = '2px solid #dc3545';
-                            e.target.title = 'Error cargando imagen';
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="remove-image-btn"
-                          title={`Eliminar imagen ${index + 1}`}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="form-actions">
-              <button 
-                type="submit" 
-                disabled={loading || newProductValidation.hasErrors}
-              >
-                {loading ? 'Creando...' : 'Crear Producto'}
-              </button>
-              <button 
-                type="button" 
-                onClick={() => {
-                  setShowAddForm(false);
-                  setImageUrl('');
-                  setPreviewUrl('');
-                  setImageUrlError('');
-                  newProductValidation.clearErrors();
-                }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
       )}
 
-      {/* Lista de productos con edición inline */}
+      {/* Lista de productos con tabla mejorada */}
       <div className="products-section">
         <h2>Productos ({products.length})</h2>
         
@@ -894,90 +539,72 @@ const AdminPanel = ({ onLogout }) => {
               </thead>
               <tbody>
                 {products.map(product => (
-                  <React.Fragment key={product.id}>
-                    <tr className={editingProductId === product.id ? 'editing-row' : ''}>
-                      <td>{product.id}</td>
-                      <td>
-                        {product.images_url && product.images_url.length > 0 ? (
-                          <img 
-                            src={product.images_url[0]} 
-                            alt={product.name}
-                            style={{ 
-                              width: '50px', 
-                              height: '50px', 
-                              objectFit: 'cover', 
-                              borderRadius: '4px' 
-                            }}
-                            onError={(e) => {
-                              e.target.src = '/assets/sin-imagen.png';
-                            }}
-                          />
-                        ) : (
-                          <div style={{ 
-                            width: '50px', 
-                            height: '50px', 
-                            backgroundColor: '#f0f0f0', 
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '10px',
-                            color: '#999'
-                          }}>
-                            Sin imagen
-                          </div>
-                        )}
-                      </td>
-                      <td>{product.name}</td>
-                      <td style={{ 
-                        maxWidth: '200px', 
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {product.description ? (
-                          <span title={product.description}>
-                            {formatUtils.truncateText(product.description, 50)}
-                          </span>
-                        ) : (
-                          <span style={{ color: '#999', fontStyle: 'italic' }}>Sin descripción</span>
-                        )}
-                      </td>
-                      <td>{product.price}</td>
-                      <td>{product.category}</td>
-                      <td>
+                  <tr key={product.id} className={editingProductId === product.id ? 'editing-row' : ''}>
+                    <td>{product.id}</td>
+                    <td>
+                      <SafeImage 
+                        src={getProductImageUrl(product)}
+                        alt={product.name}
+                        style={{ 
+                          width: '60px', 
+                          height: '60px', 
+                          objectFit: 'cover',
+                          borderRadius: '8px'
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <strong>{product.name}</strong>
+                      {(!product.images_url || product.images_url.length === 0) && (
+                        <div style={{ fontSize: '0.7rem', color: '#e67e22', marginTop: '2px' }}>
+                          ⚠️ Sin imágenes
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ 
+                      maxWidth: '200px', 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {product.description ? (
+                        <span title={product.description}>
+                          {formatUtils.truncateText(product.description, 50)}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#999', fontStyle: 'italic' }}>Sin descripción</span>
+                      )}
+                    </td>
+                    <td>{product.price}</td>
+                    <td>{product.category}</td>
+                    <td>
+                      <button
+                        className={`stock-toggle ${product.in_stock ? 'in-stock' : 'out-stock'}`}
+                        onClick={() => handleToggleStock(product)}
+                        disabled={loading}
+                      >
+                        {product.in_stock ? '✅ En Stock' : '❌ Sin Stock'}
+                      </button>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
                         <button
-                          className={`stock-toggle ${product.in_stock ? 'in-stock' : 'out-stock'}`}
-                          onClick={() => handleToggleStock(product)}
+                          onClick={() => editingProductId === product.id ? cancelEditing() : startEditing(product)}
+                          className={`btn-edit ${editingProductId === product.id ? 'editing' : ''}`}
                           disabled={loading}
                         >
-                          {product.in_stock ? '✅ En Stock' : '❌ Sin Stock'}
+                          {editingProductId === product.id ? '❌ Cancelar' : '✏️ Editar'}
                         </button>
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button
-                            onClick={() => editingProductId === product.id ? cancelEditing() : startEditing(product)}
-                            className={`btn-edit ${editingProductId === product.id ? 'editing' : ''}`}
-                            disabled={loading}
-                          >
-                            {editingProductId === product.id ? '❌ Cancelar' : '✏️ Editar'}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="btn-delete"
-                            disabled={loading || editingProductId === product.id}
-                          >
-                            🗑️ Eliminar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {/* Formulario de edición inline */}
-                    {editingProductId === product.id && editingProduct && (
-                      <InlineEditForm product={product} />
-                    )}
-                  </React.Fragment>
+                        <button
+                          onClick={() => handleDeleteProduct(product.id)}
+                          className="btn-delete"
+                          disabled={loading || editingProductId === product.id}
+                        >
+                          🗑️ Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>

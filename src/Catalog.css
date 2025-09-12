@@ -483,3 +483,262 @@
     overflow: visible;
   }
 }
+/* Agregar al final de Catalog.css */
+
+/* ========================================
+   MEJORAS PARA PRODUCTOS SIN IMÁGENES
+   ======================================== */
+
+/* Placeholder mejorado para productos sin imagen */
+.product-image-placeholder {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.product-image-placeholder:hover {
+  border-color: #d1d5db !important;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
+  transform: scale(1.02);
+}
+
+/* Badge para productos sin imagen */
+.no-image-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(10px);
+  z-index: 5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Animación de shimmer para carga de imágenes */
+@keyframes loading-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.loading-shimmer {
+  animation: loading-shimmer 2s infinite;
+}
+
+/* ========================================
+   DESCRIPCIÓN MEJORADA
+   ======================================== */
+
+/* Descripción cuando no existe */
+.product-description.no-description {
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 0.85rem;
+  border-left: 3px solid #e5e7eb;
+  padding-left: 0.75rem;
+  background: linear-gradient(90deg, rgba(243, 244, 246, 0.3) 0%, transparent 100%);
+}
+
+/* Descripción normal mejorada */
+.product-description {
+  position: relative;
+}
+
+.product-description:not(.no-description)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 30px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary-gray) 0%, transparent 100%);
+  opacity: 0.3;
+}
+
+/* ========================================
+   ESTADOS INTERACTIVOS MEJORADOS
+   ======================================== */
+
+/* Hover state mejorado para productos completos */
+.product-card:has(.product-image:not(.product-image-placeholder)):hover {
+  transform: translateY(-12px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Hover state para productos sin imagen */
+.product-card:has(.product-image-placeholder):hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+   INDICADORES DE ESTADO
+   ======================================== */
+
+/* Indicador de producto incompleto */
+.product-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  opacity: 1;
+  z-index: 2;
+}
+
+.product-card:has(.no-description)::before,
+.product-card:has(.product-image-placeholder)::before {
+  background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.product-card:has(.no-description):has(.product-image-placeholder)::before {
+  background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+}
+
+/* ========================================
+   MEJORAS RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .no-image-badge {
+    font-size: 0.6rem;
+    padding: 3px 6px;
+    top: 8px;
+    left: 8px;
+  }
+  
+  .product-description.no-description {
+    font-size: 0.8rem;
+    padding-left: 0.5rem;
+    border-left-width: 2px;
+  }
+  
+  .product-card::before {
+    height: 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-image-placeholder {
+    min-height: 200px;
+  }
+  
+  .no-image-badge {
+    position: relative;
+    top: auto;
+    left: auto;
+    margin: 0.5rem auto;
+    display: block;
+    text-align: center;
+    width: fit-content;
+  }
+}
+
+/* ========================================
+   ACCESIBILIDAD MEJORADA
+   ======================================== */
+
+/* Focus states mejorados */
+.product-card:focus-within {
+  outline: 3px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+
+.product-image-placeholder:focus {
+  outline: 2px solid rgba(107, 114, 128, 0.5);
+  outline-offset: 2px;
+}
+
+/* Reducir movimiento para usuarios que lo prefieren */
+@media (prefers-reduced-motion: reduce) {
+  .product-card,
+  .product-image,
+  .product-image-placeholder {
+    transition: none;
+  }
+  
+  .loading-shimmer {
+    animation: none;
+    background: #f0f0f0;
+  }
+  
+  .product-card:hover {
+    transform: none;
+  }
+}
+
+/* ========================================
+   MODO OSCURO (OPCIONAL)
+   ======================================== */
+
+@media (prefers-color-scheme: dark) {
+  .product-image-placeholder {
+    background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
+    border-color: #4b5563 !important;
+    color: #9ca3af !important;
+  }
+  
+  .product-description.no-description {
+    color: #6b7280;
+    border-left-color: #4b5563;
+    background: linear-gradient(90deg, rgba(75, 85, 99, 0.1) 0%, transparent 100%);
+  }
+  
+  .no-image-badge {
+    background: rgba(220, 38, 127, 0.9);
+  }
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+  .product-image-placeholder {
+    background: white !important;
+    border: 1px solid #000 !important;
+  }
+  
+  .no-image-badge {
+    background: #000 !important;
+    color: white !important;
+  }
+  
+  .product-card::before {
+    display: none;
+  }
+}
+
+/* ========================================
+   UTILIDADES ADICIONALES
+   ======================================== */
+
+/* Clase helper para debugging */
+.debug-borders * {
+  border: 1px solid red !important;
+}
+
+/* Clase para forzar recarga de imágenes */
+.force-reload .product-image {
+  animation: fadeOut 0.3s ease-out, fadeIn 0.3s ease-in 0.3s;
+}
+
+@keyframes fadeOut {
+  to { opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
