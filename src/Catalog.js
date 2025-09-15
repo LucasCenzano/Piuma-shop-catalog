@@ -269,8 +269,8 @@ function Catalog({ bags, openModal, selectedCategory }) {
         <div className="catalog-container">
             <h2 className="catalog-title">
                 {selectedCategory === 'Todos'
-                    ? `Catálogo Completo (${bags.length} productos)`
-                    : `${selectedCategory} (${bags.length} productos)`}
+                    ? `Colección Piuma`
+                    : `${selectedCategory}`}
             </h2>
 
             {/* ✅ Indicador de progreso de carga de imágenes */}
