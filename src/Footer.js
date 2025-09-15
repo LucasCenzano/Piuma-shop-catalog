@@ -11,7 +11,7 @@ function Footer() {
         </p>
         <div className="social-links">
           {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-          <a href="#" target="_blank" rel="noopener noreferrer">
+          <a href="https://www.instagram.com/piuma_carteras?igsh=c3dpdWtycndleTYx" target="_blank" rel="noopener noreferrer">
             <FaInstagram className="social-icon" />
           </a>
           {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
