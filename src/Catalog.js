@@ -1,17 +1,20 @@
-// Catalog.js - Componente mejorado con carrusel de imágenes y sin parpadeo
+// Catalog.js - Componente mejorado con carga inmediata de imágenes
 import React, { useState } from 'react';
 import './Catalog.css';
 
-// Componente para imagen con fallback mejorado (igual que en AdminPanel)
+// Componente para imagen con fallback mejorado
 const SafeProductImage = ({ src, alt, className, style, onClick, onError, ...props }) => {
-  const [imageSrc, setImageSrc] = useState(src);
   const [imageError, setImageError] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!src); // Solo loading si hay src
 
   React.useEffect(() => {
-    setImageSrc(src);
-    setImageError(false);
-    setLoading(true);
+    if (src) {
+      setImageError(false);
+      setLoading(true);
+    } else {
+      setLoading(false);
+      setImageError(true);
+    }
   }, [src]);
 
   const handleImageLoad = () => {
@@ -85,7 +88,7 @@ const SafeProductImage = ({ src, alt, className, style, onClick, onError, ...pro
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      {/* Skeleton loader mientras carga */}
+      {/* Skeleton loader mientras carga - solo si está cargando */}
       {loading && (
         <div 
           className={className}
@@ -105,18 +108,19 @@ const SafeProductImage = ({ src, alt, className, style, onClick, onError, ...pro
       )}
       
       <img
-        src={imageSrc}
+        src={src}
         alt={alt}
         className={className}
         style={{
           ...style,
           opacity: loading ? 0 : 1,
-          transition: 'opacity 0.4s ease',
+          transition: 'opacity 0.3s ease', // Transición más rápida
           objectFit: 'contain'
         }}
         onClick={onClick}
         onLoad={handleImageLoad}
         onError={handleImageError}
+        loading="eager" // Forzar carga inmediata
         {...props}
       />
     </div>
@@ -305,7 +309,7 @@ function Catalog({ bags, openModal, selectedCategory }) {
             </div>
 
             {/* Agregar estilos CSS inline para la animación de carga */}
-            <style jsx>{`
+            <style>{`
                 @keyframes loading-shimmer {
                     0% {
                         background-position: -200px 0;

@@ -1,4 +1,4 @@
-// src/utils/validationUtils.js - Utilidades de validación para productos
+// src/utils/validationUtils.js - Utilidades de validación para productos (corregidas)
 import { useState } from 'react';
 
 // Categorías válidas
@@ -33,11 +33,10 @@ export const productValidation = {
 
     // Validar precio (opcional pero si está presente debe ser válido)
     if (product.price && product.price.trim().length > 0) {
-      const cleanPrice = product.price.replace(/[\s$.,]/g, '');
-      if (!/^\d+$/.test(cleanPrice)) {
-        errors.price = 'El precio debe contener solo números (ej: $25.000)';
-      } else if (parseInt(cleanPrice) < 0) {
-        errors.price = 'El precio no puede ser negativo';
+      // Permitir formato con $ y puntos/comas para separadores de miles
+      const pricePattern = /^\$?[\d.,]+$/;
+      if (!pricePattern.test(product.price.trim())) {
+        errors.price = 'Formato de precio inválido (ej: $25.000 o 25000)';
       }
     }
 
@@ -117,7 +116,9 @@ export function validateImageUrl(url) {
       'amazonaws.com',
       'googleusercontent.com',
       'unsplash.com',
-      'pexels.com'
+      'pexels.com',
+      'imgbb.com',
+      'ibb.co'
     ].some(service => urlObj.hostname.includes(service));
     
     const hasImageExtension = imageExtensions.some(ext => pathname.endsWith(ext));
@@ -144,24 +145,31 @@ export const formatUtils = {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   },
 
-  // Formatear precio
+  // Formatear precio SOLO cuando se guarda, no durante la edición
   formatPrice: (price) => {
     if (!price) return '';
     
-    // Remover caracteres no numéricos excepto puntos y comas
-    let cleanPrice = price.toString().replace(/[^\d.,]/g, '');
+    // Si ya tiene formato correcto, mantenerlo
+    if (typeof price === 'string' && (price.includes('$') || price.includes('.'))) {
+      return price.trim();
+    }
     
-    // Convertir a número y formatear
-    if (cleanPrice) {
+    // Solo formatear si es un número puro
+    const cleanPrice = price.toString().replace(/[^\d]/g, '');
+    if (cleanPrice && !isNaN(cleanPrice)) {
       const number = parseInt(cleanPrice);
-      if (!isNaN(number)) {
-        // Formatear con separadores de miles
-        const formatted = number.toLocaleString('es-AR');
-        return `$${formatted}`;
-      }
+      // Formatear con separadores de miles usando punto
+      const formatted = number.toLocaleString('es-AR').replace(/,/g, '.');
+      return `$${formatted}`;
     }
     
     return price;
+  },
+
+  // Nueva función para normalizar precio sin formatear automáticamente
+  normalizePrice: (price) => {
+    if (!price) return '';
+    return price.toString().trim();
   },
 
   // Truncar texto

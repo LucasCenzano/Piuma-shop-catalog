@@ -1,12 +1,11 @@
-// src/AdminPanel.js - Versión completa con edición inline
+// src/AdminPanel.js - Versión SIN validación en tiempo real durante edición
 import React, { useState, useEffect } from 'react';
 import authService from './authService';
 import { 
-  useProductValidation, 
+  productValidation,
   validateImageUrl, 
   formatUtils, 
   VALID_CATEGORIES,
-  errorUtils 
 } from './utils/validationUtils';
 import './AdminPanel.css';
 
@@ -115,8 +114,8 @@ const AdminPanel = ({ onLogout }) => {
   const [imageUrl, setImageUrl] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   
-  const newProductValidation = useProductValidation();
-  const editProductValidation = useProductValidation();
+  // Solo errores de validación, sin hooks de validación en tiempo real
+  const [validationErrors, setValidationErrors] = useState({});
   const [imageUrlError, setImageUrlError] = useState('');
 
   useEffect(() => {
@@ -240,33 +239,50 @@ const AdminPanel = ({ onLogout }) => {
     }
   };
 
+  // Cambios simples sin validación en tiempo real
   const handleNewProductChange = (field, value) => {
-    const updatedProduct = { ...newProduct, [field]: value };
-    setNewProduct(updatedProduct);
-    newProductValidation.validateField(field, value, updatedProduct);
-    newProductValidation.markFieldTouched(field);
+    setNewProduct(prev => ({ ...prev, [field]: value }));
+    // Limpiar errores previos cuando el usuario empiece a escribir
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   const handleEditProductChange = (field, value) => {
-    const updatedProduct = { ...editingProduct, [field]: value };
-    setEditingProduct(updatedProduct);
-    editProductValidation.validateField(field, value, updatedProduct);
-    editProductValidation.markFieldTouched(field);
+    setEditingProduct(prev => ({ ...prev, [field]: value }));
+    // Limpiar errores previos cuando el usuario empiece a escribir
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   const handleCreateProduct = async (e) => {
     e.preventDefault();
     
-    if (!newProductValidation.validateAll(newProduct)) {
+    // Validar solo al momento de guardar
+    const validation = productValidation.validateProduct(newProduct);
+    
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
       setError('Por favor, corrige los errores en el formulario');
       return;
     }
 
     try {
       setLoading(true);
+      setValidationErrors({});
+      
       const productToCreate = {
         ...newProduct,
-        price: formatUtils.formatPrice(newProduct.price)
+        price: newProduct.price.trim()
       };
       
       await authService.createProduct(productToCreate);
@@ -282,7 +298,7 @@ const AdminPanel = ({ onLogout }) => {
       setShowAddForm(false);
       setImageUrl('');
       setPreviewUrl('');
-      newProductValidation.clearErrors();
+      setValidationErrors({});
       
       await loadProducts();
       alert('Producto creado exitosamente');
@@ -299,25 +315,31 @@ const AdminPanel = ({ onLogout }) => {
     
     if (!editingProduct) return;
 
-    if (!editProductValidation.validateAll(editingProduct)) {
+    // Validar solo al momento de guardar
+    const validation = productValidation.validateProduct(editingProduct);
+    
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
       setError('Por favor, corrige los errores en el formulario');
       return;
     }
 
     try {
       setLoading(true);
+      setValidationErrors({});
+      
       const productToUpdate = {
         ...editingProduct,
-        price: formatUtils.formatPrice(editingProduct.price)
+        price: editingProduct.price.trim()
       };
-      
+            
       await authService.updateProduct(productToUpdate);
       
       setEditingProductId(null);
       setEditingProduct(null);
       setImageUrl('');
       setPreviewUrl('');
-      editProductValidation.clearErrors();
+      setValidationErrors({});
       
       await loadProducts();
       alert('Producto actualizado exitosamente');
@@ -366,16 +388,16 @@ const AdminPanel = ({ onLogout }) => {
     setEditingProductId(product.id);
     setEditingProduct({
       id: product.id,
-      name: product.name,
-      price: product.price,
-      category: product.category,
-      description: product.description || '',
+      name: product.name || '', // ✅ SOLUCIÓN: Asegura que sea un string
+      price: String(product.price), // ✅ Correcto para el precio (convierte número a string)
+      category: product.category || '', // ✅ SOLUCIÓN: Asegura que sea un string
+      description: product.description || '', // ✅ Esto ya estaba bien
       inStock: product.in_stock,
       imagesUrl: Array.isArray(product.images_url) ? product.images_url : []
     });
     setImageUrl('');
     setPreviewUrl('');
-    editProductValidation.clearErrors();
+    setValidationErrors({});
   };
 
   const cancelEditing = () => {
@@ -383,7 +405,7 @@ const AdminPanel = ({ onLogout }) => {
     setEditingProduct(null);
     setImageUrl('');
     setPreviewUrl('');
-    editProductValidation.clearErrors();
+    setValidationErrors({});
   };
 
   const handleLogout = () => {
@@ -393,6 +415,17 @@ const AdminPanel = ({ onLogout }) => {
     } else {
       window.location.reload();
     }
+  };
+
+  // Función para mostrar errores de validación
+  const getFieldError = (fieldName) => {
+    if (validationErrors[fieldName]) {
+      if (Array.isArray(validationErrors[fieldName])) {
+        return validationErrors[fieldName].join(', ');
+      }
+      return validationErrors[fieldName];
+    }
+    return null;
   };
 
   // Componente de formulario inline para edición
@@ -406,35 +439,65 @@ const AdminPanel = ({ onLogout }) => {
               <div className="edit-form-section">
                 <h5>Información básica</h5>
                 <div className="form-row">
-                  <input
-                    type="text"
-                    value={editingProduct.name}
-                    onChange={(e) => handleEditProductChange('name', e.target.value)}
-                    placeholder="Nombre del producto"
-                    required
-                    style={{ flex: 1 }}
-                  />
-                  <input
-                    type="text"
-                    value={editingProduct.price}
-                    onChange={(e) => handleEditProductChange('price', e.target.value)}
-                    placeholder="Precio (ej: $25.000)"
-                    style={{ flex: 1 }}
-                  />
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="text"
+                      value={editingProduct.name}
+                      onChange={(e) => handleEditProductChange('name', e.target.value)}
+                      placeholder="Nombre del producto"
+                      required
+                      style={{ 
+                        width: '100%',
+                        borderColor: getFieldError('name') ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'
+                      }}
+                    />
+                    {getFieldError('name') && (
+                      <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                        {getFieldError('name')}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, marginLeft: '1rem' }}>
+                    <input
+                      type="text"
+                      value={editingProduct.price}
+                      onChange={(e) => handleEditProductChange('price', e.target.value)}
+                      placeholder="Precio (ej: $25.000)"
+                      style={{ 
+                        width: '100%',
+                        borderColor: getFieldError('price') ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'
+                      }}
+                    />
+                    {getFieldError('price') && (
+                      <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                        {getFieldError('price')}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="form-row">
-                  <select
-                    value={editingProduct.category}
-                    onChange={(e) => handleEditProductChange('category', e.target.value)}
-                    required
-                    style={{ flex: 1 }}
-                  >
-                    <option value="">Seleccionar categoría</option>
-                    {VALID_CATEGORIES.map(category => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                  <label className="checkbox-label">
+                  <div style={{ flex: 1 }}>
+                    <select
+                      value={editingProduct.category}
+                      onChange={(e) => handleEditProductChange('category', e.target.value)}
+                      required
+                      style={{ 
+                        width: '100%',
+                        borderColor: getFieldError('category') ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'
+                      }}
+                    >
+                      <option value="">Seleccionar categoría</option>
+                      {VALID_CATEGORIES.map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                    {getFieldError('category') && (
+                      <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                        {getFieldError('category')}
+                      </div>
+                    )}
+                  </div>
+                  <label className="checkbox-label" style={{ marginLeft: '1rem' }}>
                     <input
                       type="checkbox"
                       checked={editingProduct.inStock}
@@ -444,13 +507,23 @@ const AdminPanel = ({ onLogout }) => {
                   </label>
                 </div>
                 <div className="form-row">
-                  <textarea
-                    value={editingProduct.description}
-                    onChange={(e) => handleEditProductChange('description', e.target.value)}
-                    placeholder="Descripción del producto"
-                    rows={3}
-                    style={{ width: '100%' }}
-                  />
+                  <div style={{ width: '100%' }}>
+                    <textarea
+                      value={editingProduct.description}
+                      onChange={(e) => handleEditProductChange('description', e.target.value)}
+                      placeholder="Descripción del producto"
+                      rows={3}
+                      style={{ 
+                        width: '100%',
+                        borderColor: getFieldError('description') ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'
+                      }}
+                    />
+                    {getFieldError('description') && (
+                      <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                        {getFieldError('description')}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -499,7 +572,7 @@ const AdminPanel = ({ onLogout }) => {
                 {previewUrl && (
                   <div className="image-preview">
                     <p>Vista previa:</p>
-                    <img 
+                    <SafeImage 
                       src={previewUrl} 
                       alt="Preview" 
                       className="preview-image"
@@ -517,14 +590,11 @@ const AdminPanel = ({ onLogout }) => {
                     <div className="images-grid">
                       {editingProduct.imagesUrl.map((url, index) => (
                         <div key={index} className="image-item">
-                          <img 
+                          <SafeImage 
                             src={url} 
                             alt={`Imagen ${index + 1}`}
                             className="thumbnail"
-                            onError={(e) => {
-                              e.target.style.border = '2px solid #dc3545';
-                              e.target.title = 'Error cargando imagen';
-                            }}
+                            style={{ width: '60px', height: '60px', objectFit: 'cover' }}
                           />
                           <button
                             type="button"
@@ -539,13 +609,19 @@ const AdminPanel = ({ onLogout }) => {
                     </div>
                   </div>
                 )}
+                
+                {getFieldError('images') && (
+                  <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                    {getFieldError('images')}
+                  </div>
+                )}
               </div>
             </div>
             
             <div className="inline-form-actions">
               <button 
                 type="submit" 
-                disabled={loading || editProductValidation.hasErrors} 
+                disabled={loading} 
                 className="save-btn"
               >
                 {loading ? 'Guardando...' : 'Guardar Cambios'}
@@ -594,7 +670,7 @@ const AdminPanel = ({ onLogout }) => {
             onClick={() => {
               setShowAddForm(!showAddForm);
               if (showAddForm) {
-                newProductValidation.clearErrors();
+                setValidationErrors({});
                 setNewProduct({
                   name: '',
                   price: '',
@@ -619,6 +695,187 @@ const AdminPanel = ({ onLogout }) => {
         <div className="error-message">
           <p>{error}</p>
           <button onClick={() => setError(null)}>Cerrar</button>
+        </div>
+      )}
+
+      {/* Formulario de agregar producto */}
+      {showAddForm && (
+        <div className="product-form">
+          <h3>Agregar Nuevo Producto</h3>
+          <form onSubmit={handleCreateProduct}>
+            <div className="form-row">
+              <div style={{ flex: 1 }}>
+                <input
+                  type="text"
+                  placeholder="Nombre del producto"
+                  value={newProduct.name}
+                  onChange={(e) => handleNewProductChange('name', e.target.value)}
+                  required
+                  style={{
+                    borderColor: getFieldError('name') ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'
+                  }}
+                />
+                {getFieldError('name') && (
+                  <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                    {getFieldError('name')}
+                  </div>
+                )}
+              </div>
+              <div style={{ flex: 1, marginLeft: '1rem' }}>
+                <input
+                  type="text"
+                  placeholder="Precio (ej: $25.000)"
+                  value={newProduct.price}
+                  onChange={(e) => handleNewProductChange('price', e.target.value)}
+                  style={{
+                    borderColor: getFieldError('price') ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'
+                  }}
+                />
+                {getFieldError('price') && (
+                  <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                    {getFieldError('price')}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="form-row">
+              <div style={{ flex: 1 }}>
+                <select
+                  value={newProduct.category}
+                  onChange={(e) => handleNewProductChange('category', e.target.value)}
+                  required
+                  style={{
+                    borderColor: getFieldError('category') ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'
+                  }}
+                >
+                  <option value="">Seleccionar categoría</option>
+                  {VALID_CATEGORIES.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+                {getFieldError('category') && (
+                  <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                    {getFieldError('category')}
+                  </div>
+                )}
+              </div>
+              <label style={{ marginLeft: '1rem' }}>
+                <input
+                  type="checkbox"
+                  checked={newProduct.inStock}
+                  onChange={(e) => handleNewProductChange('inStock', e.target.checked)}
+                />
+                En Stock
+              </label>
+            </div>
+            
+            <div className="form-row">
+              <div style={{ width: '100%' }}>
+                <textarea
+                  placeholder="Descripción del producto"
+                  value={newProduct.description}
+                  onChange={(e) => handleNewProductChange('description', e.target.value)}
+                  rows={3}
+                  style={{
+                    borderColor: getFieldError('description') ? '#dc3545' : 'rgba(230, 227, 212, 0.6)'
+                  }}
+                />
+                {getFieldError('description') && (
+                  <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                    {getFieldError('description')}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Sección de imágenes */}
+            <div className="image-section">
+              <h4>Agregar Imágenes</h4>
+              <div className="form-row">
+                <input
+                  type="url"
+                  placeholder="URL de la imagen (ej: https://...)"
+                  value={imageUrl}
+                  onChange={handleImageUrlChange}
+                />
+                <button type="button" onClick={addImageToProduct} className="add-image-btn">
+                  Agregar
+                </button>
+              </div>
+              
+              {imageUrlError && (
+                <div style={{ color: '#dc3545', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                  {imageUrlError}
+                </div>
+              )}
+              
+              {previewUrl && (
+                <div className="image-preview">
+                  <p>Vista previa:</p>
+                  <SafeImage 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    className="preview-image"
+                    onError={() => {
+                      setPreviewUrl('');
+                      setImageUrlError('No se pudo cargar la imagen. Verifica la URL.');
+                    }}
+                  />
+                </div>
+              )}
+              
+              {newProduct.imagesUrl && newProduct.imagesUrl.length > 0 && (
+                <div className="current-images">
+                  <p>Imágenes agregadas ({newProduct.imagesUrl.length}/10):</p>
+                  <div className="images-grid">
+                    {newProduct.imagesUrl.map((url, index) => (
+                      <div key={index} className="image-item">
+                        <SafeImage 
+                          src={url} 
+                          alt={`Imagen ${index + 1}`}
+                          className="thumbnail"
+                          style={{ width: '60px', height: '60px', objectFit: 'cover' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="remove-image-btn"
+                          title={`Eliminar imagen ${index + 1}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {getFieldError('images') && (
+                <div style={{ color: '#dc3545', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                  {getFieldError('images')}
+                </div>
+              )}
+            </div>
+
+            <div className="form-actions">
+              <button 
+                type="submit" 
+                disabled={loading}
+              >
+                {loading ? 'Creando...' : 'Crear Producto'}
+              </button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowAddForm(false);
+                  setValidationErrors({});
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

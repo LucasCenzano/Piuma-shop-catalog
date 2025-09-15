@@ -300,7 +300,32 @@ class AuthService {
   isAdmin() {
     return this.user && this.user.role === 'admin';
   }
+
+  
+  // Agregar esta nueva función
+  async verifyToken() {
+    try {
+      const token = this.getToken();
+      const user = this.getUser();
+      
+      if (!token || !user) {
+        return false;
+      }
+      
+      if (this.isTokenExpired()) {
+        this.logout();
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error verificando token:', error);
+      this.logout();
+      return false;
+    }
+  }
 }
+
 
 const authService = new AuthService();
 export default authService;
