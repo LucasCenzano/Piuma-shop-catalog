@@ -1,13 +1,13 @@
-// Catalog.js - Componente mejorado con carga inmediata de imágenes
-import React, { useState } from 'react';
+// Catalog.js - Componente mejorado con precarga inmediata de todas las imágenes
+import React, { useState, useEffect } from 'react';
 import './Catalog.css';
 
-// Componente para imagen con fallback mejorado
+// Componente para imagen con precarga mejorada
 const SafeProductImage = ({ src, alt, className, style, onClick, onError, ...props }) => {
   const [imageError, setImageError] = useState(false);
-  const [loading, setLoading] = useState(!!src); // Solo loading si hay src
+  const [loading, setLoading] = useState(!!src);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (src) {
       setImageError(false);
       setLoading(true);
@@ -88,7 +88,7 @@ const SafeProductImage = ({ src, alt, className, style, onClick, onError, ...pro
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      {/* Skeleton loader mientras carga - solo si está cargando */}
+      {/* Skeleton loader mientras carga */}
       {loading && (
         <div 
           className={className}
@@ -114,22 +114,91 @@ const SafeProductImage = ({ src, alt, className, style, onClick, onError, ...pro
         style={{
           ...style,
           opacity: loading ? 0 : 1,
-          transition: 'opacity 0.3s ease', // Transición más rápida
+          transition: 'opacity 0.2s ease', // Transición más rápida
           objectFit: 'contain'
         }}
         onClick={onClick}
         onLoad={handleImageLoad}
         onError={handleImageError}
-        loading="eager" // Forzar carga inmediata
+        loading="eager" // ✅ Carga inmediata
+        decoding="async" // ✅ Decodificación asíncrona para mejor rendimiento
         {...props}
       />
     </div>
   );
 };
 
+// Hook personalizado para precargar todas las imágenes
+const useImagePreloader = (bags) => {
+  const [preloadedImages, setPreloadedImages] = useState(new Set());
+  const [preloadProgress, setPreloadProgress] = useState(0);
+
+  useEffect(() => {
+    // ✅ Función para precargar todas las imágenes al cargar el catálogo
+    const preloadAllImages = async () => {
+      console.log('🖼️ Iniciando precarga de imágenes...');
+      
+      // Recopilar todas las URLs de imágenes únicas
+      const allImageUrls = new Set();
+      bags.forEach(bag => {
+        if (bag.images && Array.isArray(bag.images)) {
+          bag.images.forEach(url => {
+            if (url && url.trim().length > 0) {
+              allImageUrls.add(url.trim());
+            }
+          });
+        }
+      });
+
+      const urlsArray = Array.from(allImageUrls);
+      console.log(`📊 Precargando ${urlsArray.length} imágenes únicas...`);
+
+      let loadedCount = 0;
+      const promises = urlsArray.map((url) => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          
+          // ✅ Configurar para carga inmediata
+          img.loading = 'eager';
+          img.decoding = 'async';
+          
+          const handleComplete = () => {
+            loadedCount++;
+            setPreloadProgress((loadedCount / urlsArray.length) * 100);
+            setPreloadedImages(prev => new Set([...prev, url]));
+            resolve();
+          };
+
+          img.onload = handleComplete;
+          img.onerror = () => {
+            console.warn(`⚠️ Error cargando imagen: ${url}`);
+            handleComplete(); // Continuar aunque falle
+          };
+
+          // ✅ Iniciar la carga
+          img.src = url;
+        });
+      });
+
+      // Esperar a que todas terminen (exitosa o con error)
+      await Promise.all(promises);
+      console.log('✅ Precarga de imágenes completada');
+    };
+
+    if (bags && bags.length > 0) {
+      preloadAllImages();
+    }
+  }, [bags]); // ✅ Recargar cuando cambien los productos
+
+  return { preloadedImages, preloadProgress };
+};
+
 function Catalog({ bags, openModal, selectedCategory }) {
     // Estado para manejar el índice de imagen actual de cada producto
     const [currentImageIndexes, setCurrentImageIndexes] = useState({});
+    
+    // ✅ Hook para precargar imágenes
+    const { preloadProgress } = useImagePreloader(bags);
 
     // Función para obtener el índice actual de imagen de un producto
     const getCurrentImageIndex = (productId) => {
@@ -160,7 +229,7 @@ function Catalog({ bags, openModal, selectedCategory }) {
         if (bag.images && bag.images.length > 0) {
             return bag.images[currentIndex] || bag.images[0];
         }
-        return null; // Retornamos null en lugar de imagen por defecto
+        return null;
     };
 
     // Función para obtener todas las imágenes válidas
@@ -203,6 +272,38 @@ function Catalog({ bags, openModal, selectedCategory }) {
                     ? `Catálogo Completo (${bags.length} productos)`
                     : `${selectedCategory} (${bags.length} productos)`}
             </h2>
+
+            {/* ✅ Indicador de progreso de carga de imágenes */}
+            {preloadProgress < 100 && preloadProgress > 0 && (
+                <div style={{
+                    margin: '0 auto 2rem',
+                    maxWidth: '400px',
+                    textAlign: 'center'
+                }}>
+                    <p style={{ 
+                        fontSize: '0.9rem', 
+                        color: '#666', 
+                        marginBottom: '0.5rem' 
+                    }}>
+                        📸 Cargando imágenes... {Math.round(preloadProgress)}%
+                    </p>
+                    <div style={{
+                        width: '100%',
+                        height: '4px',
+                        backgroundColor: '#e0e0e0',
+                        borderRadius: '2px',
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{
+                            width: `${preloadProgress}%`,
+                            height: '100%',
+                            backgroundColor: '#007bff',
+                            transition: 'width 0.3s ease',
+                            borderRadius: '2px'
+                        }} />
+                    </div>
+                </div>
+            )}
 
             <div className="catalog-grid">
                 {bags.map((bag) => {
