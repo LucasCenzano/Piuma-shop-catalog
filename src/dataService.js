@@ -118,7 +118,7 @@ class DataService {
           'Cache-Control': 'max-age=300' // Cache del navegador por 5 minutos
         },
         // ✅ Configuraciones para mejor rendimiento
-        cache: 'force-cache', // Usar cache del navegador si está disponible
+        cache: 'reload', // Usar cache del navegador si está disponible
         priority: 'high' // Alta prioridad para esta petición
       });
 
