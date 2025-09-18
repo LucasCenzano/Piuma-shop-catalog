@@ -1,4 +1,5 @@
 // authService.js - Versión corregida para desarrollo y producción
+import dataService from './dataService'; // 👈 1. Importa el dataService
 
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? '' // En producción usa URLs relativas
@@ -227,6 +228,7 @@ class AuthService {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
+      dataService.invalidateCache(); // 👈 2. Invalida la caché aquí
       return await response.json();
     } catch (error) {
       console.error('❌ Error creando producto:', error);
@@ -250,8 +252,10 @@ class AuthService {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
+      dataService.invalidateCache(); // 👈 3. Invalida la caché aquí también
       return await response.json();
-    } catch (error) {
+    } catch (error)
+    {
       console.error('❌ Error actualizando producto:', error);
       throw error;
     }
@@ -268,6 +272,7 @@ class AuthService {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
+      dataService.invalidateCache(); // 👈 4. Y aquí también
       return await response.json();
     } catch (error) {
       console.error('❌ Error eliminando producto:', error);
