@@ -1,4 +1,4 @@
-// Catalog.js - Componente mejorado con precarga inmediata de todas las imágenes
+// Catalog.js - Componente corregido para mostrar stock correctamente
 import React, { useState, useEffect } from 'react';
 import './Catalog.css';
 
@@ -114,14 +114,14 @@ const SafeProductImage = ({ src, alt, className, style, onClick, onError, ...pro
         style={{
           ...style,
           opacity: loading ? 0 : 1,
-          transition: 'opacity 0.2s ease', // Transición más rápida
+          transition: 'opacity 0.2s ease',
           objectFit: 'contain'
         }}
         onClick={onClick}
         onLoad={handleImageLoad}
         onError={handleImageError}
-        loading="eager" // ✅ Carga inmediata
-        decoding="async" // ✅ Decodificación asíncrona para mejor rendimiento
+        loading="eager"
+        decoding="async"
         {...props}
       />
     </div>
@@ -134,11 +134,9 @@ const useImagePreloader = (bags) => {
   const [preloadProgress, setPreloadProgress] = useState(0);
 
   useEffect(() => {
-    // ✅ Función para precargar todas las imágenes al cargar el catálogo
     const preloadAllImages = async () => {
       console.log('🖼️ Iniciando precarga de imágenes...');
       
-      // Recopilar todas las URLs de imágenes únicas
       const allImageUrls = new Set();
       bags.forEach(bag => {
         if (bag.images && Array.isArray(bag.images)) {
@@ -158,7 +156,6 @@ const useImagePreloader = (bags) => {
         return new Promise((resolve) => {
           const img = new Image();
           
-          // ✅ Configurar para carga inmediata
           img.loading = 'eager';
           img.decoding = 'async';
           
@@ -172,15 +169,13 @@ const useImagePreloader = (bags) => {
           img.onload = handleComplete;
           img.onerror = () => {
             console.warn(`⚠️ Error cargando imagen: ${url}`);
-            handleComplete(); // Continuar aunque falle
+            handleComplete();
           };
 
-          // ✅ Iniciar la carga
           img.src = url;
         });
       });
 
-      // Esperar a que todas terminen (exitosa o con error)
       await Promise.all(promises);
       console.log('✅ Precarga de imágenes completada');
     };
@@ -188,42 +183,43 @@ const useImagePreloader = (bags) => {
     if (bags && bags.length > 0) {
       preloadAllImages();
     }
-  }, [bags]); // ✅ Recargar cuando cambien los productos
+  }, [bags]);
 
   return { preloadedImages, preloadProgress };
 };
 
 function Catalog({ bags, openModal, selectedCategory }) {
-    // Estado para manejar el índice de imagen actual de cada producto
     const [currentImageIndexes, setCurrentImageIndexes] = useState({});
-    
-    // ✅ Hook para precargar imágenes
     const { preloadProgress } = useImagePreloader(bags);
 
-    // Función para obtener el índice actual de imagen de un producto
+    // ✅ LOG PARA DEBUGGING
+    useEffect(() => {
+        console.log('🛍️ Productos en Catalog:', bags.length);
+        bags.forEach(bag => {
+            console.log(`📦 ${bag.name}: inStock=${bag.inStock}, in_stock=${bag.in_stock}`);
+        });
+    }, [bags]);
+
     const getCurrentImageIndex = (productId) => {
         return currentImageIndexes[productId] || 0;
     };
 
-    // Función para cambiar a la siguiente imagen
     const handleNextImage = (e, productId, totalImages) => {
-        e.stopPropagation(); // Evitar que abra el modal
+        e.stopPropagation();
         setCurrentImageIndexes(prev => ({
             ...prev,
             [productId]: (prev[productId] || 0) + 1 >= totalImages ? 0 : (prev[productId] || 0) + 1
         }));
     };
 
-    // Función para cambiar a la imagen anterior
     const handlePrevImage = (e, productId, totalImages) => {
-        e.stopPropagation(); // Evitar que abra el modal
+        e.stopPropagation();
         setCurrentImageIndexes(prev => ({
             ...prev,
             [productId]: (prev[productId] || 0) - 1 < 0 ? totalImages - 1 : (prev[productId] || 0) - 1
         }));
     };
 
-    // Función para obtener la imagen actual del producto
     const getProductImage = (bag) => {
         const currentIndex = getCurrentImageIndex(bag.id);
         if (bag.images && bag.images.length > 0) {
@@ -232,7 +228,6 @@ function Catalog({ bags, openModal, selectedCategory }) {
         return null;
     };
 
-    // Función para obtener todas las imágenes válidas
     const getAllImages = (bag) => {
         if (bag.images && Array.isArray(bag.images)) {
             return bag.images.filter(img => img && img.trim().length > 0);
@@ -273,7 +268,7 @@ function Catalog({ bags, openModal, selectedCategory }) {
                     : `${selectedCategory}`}
             </h2>
 
-            {/* ✅ Indicador de progreso de carga de imágenes */}
+            {/* Indicador de progreso de carga de imágenes */}
             {preloadProgress < 100 && preloadProgress > 0 && (
                 <div style={{
                     margin: '0 auto 2rem',
@@ -312,6 +307,12 @@ function Catalog({ bags, openModal, selectedCategory }) {
                     const hasMultipleImages = allImages.length > 1;
                     const currentIndex = getCurrentImageIndex(bag.id);
                     const hasImages = allImages.length > 0;
+                    
+                    // ✅ CORRECCIÓN CRÍTICA: Usar la propiedad correcta para el stock
+                    const isInStock = bag.inStock === true;
+                    
+                    // LOG para debugging
+                    console.log(`Renderizando ${bag.name}: inStock=${bag.inStock}, isInStock=${isInStock}`);
 
                     return (
                         <div key={bag.id} className="product-card">
@@ -397,8 +398,9 @@ function Catalog({ bags, openModal, selectedCategory }) {
                                         <p className="product-price">{bag.price}</p>
                                     )}
 
-                                    <span className={`stock-status ${bag.inStock ? 'in-stock' : 'out-of-stock'}`}>
-                                        {bag.inStock ? '✓ En Stock' : '✗ Sin Stock'}
+                                    {/* ✅ CORRECCIÓN: Mostrar estado de stock basado en isInStock */}
+                                    <span className={`stock-status ${isInStock ? 'in-stock' : 'out-of-stock'}`}>
+                                        {isInStock ? '✓ En Stock' : '✗ Sin Stock'}
                                     </span>
                                 </div>
 

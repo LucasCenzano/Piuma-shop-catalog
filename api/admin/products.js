@@ -173,75 +173,83 @@ module.exports = async function handler(req, res) {
           product: newProduct
         });
 
-      case 'PUT':
-        const updateData = req.body;
-        
-        if (!updateData.id) {
-          return res.status(400).json({ error: 'ID del producto es requerido' });
-        }
-
-        const updates = [];
-        const values = [];
-        let paramCount = 1;
-
-        if (updateData.name !== undefined) {
-          updates.push(`name = $${paramCount++}`);
-          values.push(updateData.name);
-        }
-        if (updateData.price !== undefined) {
-          updates.push(`price = $${paramCount++}`);
-          values.push(updateData.price);
-        }
-        if (updateData.category !== undefined) {
-          updates.push(`category = $${paramCount++}`);
-          values.push(updateData.category);
-        }
-        if (updateData.description !== undefined) {
-          updates.push(`description = $${paramCount++}`);
-          values.push(updateData.description);
-        }
-        if (updateData.inStock !== undefined) {
-          updates.push(`in_stock = $${paramCount++}`);
-          values.push(updateData.inStock);
-        }
-        if (updateData.imagesUrl !== undefined) {
-          updates.push(`images_url = $${paramCount++}`);
-          values.push(JSON.stringify(updateData.imagesUrl));
-        }
-
-        if (updates.length === 0) {
-          return res.status(400).json({ error: 'No hay campos para actualizar' });
-        }
-
-        updates.push(`updated_at = CURRENT_TIMESTAMP`);
-        values.push(parseInt(updateData.id));
-
-        const updateQuery = `
-          UPDATE products 
-          SET ${updates.join(', ')}
-          WHERE id = $${paramCount}
-          RETURNING *
-        `;
-
-        const updateResult = await query(updateQuery, values);
-
-        if (updateResult.rows.length === 0) {
-          return res.status(404).json({ error: 'Producto no encontrado' });
-        }
-
-        const updatedProduct = updateResult.rows[0];
-        if (typeof updatedProduct.images_url === 'string') {
-          try {
-            updatedProduct.images_url = JSON.parse(updatedProduct.images_url);
-          } catch (e) {
-            updatedProduct.images_url = [];
+        case 'PUT':
+          const updateData = req.body;
+          
+          if (!updateData.id) {
+            return res.status(400).json({ error: 'ID del producto es requerido' });
           }
-        }
 
-        return res.status(200).json({
-          message: 'Producto actualizado exitosamente',
-          product: updatedProduct
-        });
+          console.log('📝 Datos de actualización recibidos:', updateData);
+
+          const updates = [];
+          const values = [];
+          let paramCount = 1;
+
+          if (updateData.name !== undefined) {
+            updates.push(`name = $${paramCount++}`);
+            values.push(updateData.name);
+          }
+          if (updateData.price !== undefined) {
+            updates.push(`price = $${paramCount++}`);
+            values.push(updateData.price);
+          }
+          if (updateData.category !== undefined) {
+            updates.push(`category = $${paramCount++}`);
+            values.push(updateData.category);
+          }
+          if (updateData.description !== undefined) {
+            updates.push(`description = $${paramCount++}`);
+            values.push(updateData.description);
+          }
+          // ✅ Manejo correcto de inStock
+          if (updateData.inStock !== undefined) {
+            updates.push(`in_stock = $${paramCount++}`);
+            values.push(updateData.inStock);
+          }
+          if (updateData.imagesUrl !== undefined) {
+            updates.push(`images_url = $${paramCount++}`);
+            values.push(JSON.stringify(updateData.imagesUrl));
+          }
+
+          if (updates.length === 0) {
+            return res.status(400).json({ error: 'No hay campos para actualizar' });
+          }
+
+          updates.push(`updated_at = CURRENT_TIMESTAMP`);
+          values.push(parseInt(updateData.id));
+
+          const updateQuery = `
+            UPDATE products 
+            SET ${updates.join(', ')}
+            WHERE id = $${paramCount}
+            RETURNING *
+          `;
+
+          console.log('🔍 Query ejecutándose:', updateQuery);
+          console.log('🔍 Valores:', values);
+
+          const updateResult = await query(updateQuery, values);
+
+          if (updateResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+          }
+
+          const updatedProduct = updateResult.rows[0];
+          if (typeof updatedProduct.images_url === 'string') {
+            try {
+              updatedProduct.images_url = JSON.parse(updatedProduct.images_url);
+            } catch (e) {
+              updatedProduct.images_url = [];
+            }
+          }
+
+          console.log('✅ Producto actualizado exitosamente:', updatedProduct);
+
+          return res.status(200).json({
+            message: 'Producto actualizado exitosamente',
+            product: updatedProduct
+          });
 
       case 'DELETE':
         const { id } = req.query;

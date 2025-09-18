@@ -1,3 +1,4 @@
+// MainApp.js - SOLUCIÓN ACTUALIZADA
 import React, { useState, useEffect, useRef } from 'react';
 import Catalog from './Catalog';
 import ImageModal from './ImageModal';
@@ -32,7 +33,7 @@ function MainApp() {
         loadProducts();
     }, []);
 
-    // ✅ Función optimizada para cargar productos
+    // ✅ Función CORREGIDA para cargar productos
     const loadProducts = async () => {
         try {
             setLoading(true);
@@ -48,18 +49,29 @@ function MainApp() {
 
             console.log(`📦 ${products.length} productos obtenidos de la API`);
 
-            // Transformar productos para adaptar estructura
-            const transformedProducts = products.map(product => ({
-                ...product,
-                images: product.images_url || [], // Crear 'images' desde 'images_url'
-                inStock: product.in_stock         // Crear 'inStock' desde 'in_stock'
-            }));
+            // ✅ CORRECCIÓN IMPORTANTE: Transformar productos para adaptar estructura
+            const transformedProducts = products.map(product => {
+                // Log para debugging
+                console.log(`Producto ${product.name}: in_stock = ${product.in_stock}`);
+                
+                return {
+                    ...product,
+                    images: product.images_url || [],     // Crear 'images' desde 'images_url'
+                    inStock: Boolean(product.in_stock)    // ✅ CORRECCIÓN SIMPLE: Convertir directamente a booleano
+                };
+            });
 
             setLoadingProgress(80);
             setBagsData(transformedProducts);
             setLoadingProgress(100);
 
             console.log('✅ Productos cargados y transformados exitosamente');
+            
+            // Log para verificar transformación
+            console.log('🔍 Verificación de stock:');
+            transformedProducts.forEach(p => {
+                console.log(`- ${p.name}: inStock = ${p.inStock} (original: ${p.in_stock})`);
+            });
 
         } catch (err) {
             console.error('❌ Error cargando productos:', err);
@@ -360,6 +372,8 @@ function MainApp() {
                     </button>
                 </div>
             )}
+
+            
 
             <main>
                 <Catalog 
