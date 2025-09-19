@@ -5,7 +5,6 @@ import authService from './authService';
 const ADMIN_SECTIONS = [
   { id: 'dashboard', name: 'Tablero', icon: '📊' },
   { id: 'products', name: 'Productos', icon: '🛍️' },
-  { id: 'analytics', name: 'Ventas', icon: '📈' },
   { id: 'reports', name: 'Informes', icon: '📋' },
   { id: 'settings', name: 'Configuración', icon: '⚙️' }
 ];
@@ -430,6 +429,46 @@ const AdminPanel = ({ onLogout }) => {
                 ))}
               </div>
             </div>
+                {/* Acceso directo al módulo de ventas */}
+              <div style={{
+                background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                borderRadius: '16px',
+                padding: '2rem',
+                marginBottom: '3rem',
+                textAlign: 'center',
+                boxShadow: '0 8px 32px rgba(40, 167, 69, 0.3)'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💰</div>
+                <h3 style={{ 
+                  color: 'white',
+                  fontSize: '1.8rem',
+                  marginBottom: '1rem',
+                  fontFamily: 'Didot, serif',
+                  fontWeight: '400'
+                }}>
+                  Módulo de Ventas
+                </h3>
+                <p style={{ color: 'white', opacity: 0.9, marginBottom: '2rem', fontSize: '1.1rem' }}>
+                  Registra ventas, gestiona clientes y visualiza estadísticas
+                </p>
+                <button
+                  onClick={() => window.location.href = '/admin/ventas'}
+                  style={{
+                    background: 'white',
+                    color: '#28a745',
+                    border: 'none',
+                    padding: '1rem 2.5rem',
+                    borderRadius: '12px',
+                    fontSize: '1.1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  🚀 Ir a Ventas
+                </button>
+              </div>
           </div>
         );
 
@@ -991,7 +1030,6 @@ const AdminPanel = ({ onLogout }) => {
                                 disabled={loading}
                                 style={{
                                   padding: '0.6rem 1.2rem',
-                                  border: 'none',
                                   borderRadius: '20px',
                                   fontSize: '0.8rem',
                                   fontWeight: '500',
@@ -1399,25 +1437,7 @@ const AdminPanel = ({ onLogout }) => {
           </div>
         );
 
-      case 'analytics':
-        return (
-          <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1rem', opacity: 0.5 }}>📈</div>
-            <h2 style={{ 
-              fontFamily: 'Didot, serif', 
-              fontSize: '2rem', 
-              color: '#333',
-              marginBottom: '1rem',
-              fontWeight: '400'
-            }}>
-              Análisis de Ventas
-            </h2>
-            <p style={{ fontSize: '1.1rem', color: '#666', maxWidth: '500px', margin: '0 auto' }}>
-              Esta sección estará disponible próximamente. Aquí podrás ver estadísticas detalladas, 
-              gráficos de ventas y análisis de rendimiento de productos.
-            </p>
-          </div>
-        );
+      
 
       case 'reports':
         return (
@@ -1688,6 +1708,32 @@ const AdminPanel = ({ onLogout }) => {
               borderRadius: '5px',
               transition: 'all 0.3s ease'
             }}></div>
+          </button>
+
+            {/* Botón especial para Ventas */}
+          <button
+            onClick={() => window.location.href = '/admin/ventas'}
+            style={{
+              background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: '500',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontFamily: 'Montserrat, sans-serif',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
+            }}
+          >
+            <span style={{ fontSize: '1.1rem' }}>💰</span>
+            <span>Ventas</span>
           </button>
 
           {/* Botón logout */}
