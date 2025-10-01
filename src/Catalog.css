@@ -294,11 +294,11 @@
   
   .catalog-grid {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); /* ✅ Mantener tamaño bueno en móvil */
-    gap: 2rem;
+    gap: 2.5rem;
   }
 
   .product-image-container {
-    height: 260px;
+    height: 320px;
   }
   
   .product-info {
@@ -341,7 +341,7 @@
   }
 
   .product-image-container {
-    height: 240px;
+    height: 300px;
   }
   
   .product-info {

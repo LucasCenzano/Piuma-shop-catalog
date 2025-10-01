@@ -26,10 +26,15 @@
    ======================================== */
 
 .admin-panel {
-  font-family: 'Montserrat', sans-serif;
-  min-height: 100vh;
-  background: linear-gradient(135deg, var(--primary-light) 0%, #f5f3ee 100%);
-  color: var(--primary-dark);
+  /* ✅ ANCHO MODIFICADO */
+  max-width: none; /* Quitamos el límite de 1200px */
+  width: 100%;     /* Hacemos que ocupe todo el ancho disponible */
+  margin: 0 auto;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box; /* Importante para que el padding no desborde */
 }
 
 /* ========================================
@@ -423,6 +428,7 @@
    ======================================== */
 
 .form-actions {
+  grid-column: 1 / -1; /* Ocupa todas las columnas */
   display: flex;
   gap: 1.5rem;
   margin-top: 2.5rem;

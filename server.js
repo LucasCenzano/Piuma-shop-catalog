@@ -41,7 +41,7 @@ const adaptHandler = (handler) => {
 const authHandler = require('./api/auth');
 const productsHandler = require('./api/products');
 const adminProductsHandler = require('./api/admin/products');
-const testDbHandler = require('./api/test-db');
+const testDbHandler = require('./test-db');
 const testAuthHandler = require('./api/test-auth');
 
 // Configurar rutas

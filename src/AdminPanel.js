@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import authService from './authService';
 
 // Categorías válidas con íconos
@@ -135,6 +135,9 @@ const AdminPanel = ({ onLogout }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  
+  // ✅ 1. ESTADO PARA GUARDAR EL ORDEN
+  const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'descending' });
 
   // Estados para nuevo producto
   const [newName, setNewName] = useState('');
@@ -153,6 +156,32 @@ const AdminPanel = ({ onLogout }) => {
   const [editInStock, setEditInStock] = useState(true);
   const [editImages, setEditImages] = useState([]);
   const [editImageUrl, setEditImageUrl] = useState('');
+  // ✅ 2. LÓGICA PARA ORDENAR LOS PRODUCTOS
+  const sortedProducts = useMemo(() => {
+      let sortableProducts = [...products];
+      if (sortConfig.key) {
+          sortableProducts.sort((a, b) => {
+              if (a[sortConfig.key] < b[sortConfig.key]) {
+                  return sortConfig.direction === 'ascending' ? -1 : 1;
+              }
+              if (a[sortConfig.key] > b[sortConfig.key]) {
+                  return sortConfig.direction === 'ascending' ? 1 : -1;
+              }
+              return 0;
+          });
+      }
+      return sortableProducts;
+  }, [products, sortConfig]);
+    
+  // ✅ 3. FUNCIÓN PARA CAMBIAR EL ORDEN AL HACER CLIC
+  const requestSort = (key) => {
+      let direction = 'ascending';
+      // Si se hace clic en la misma columna, se invierte la dirección
+      if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+          direction = 'descending';
+      }
+      setSortConfig({ key, direction });
+  };
 
   useEffect(() => {
     if (!authService.isAuthenticated()) {
@@ -1818,7 +1847,7 @@ const AdminPanel = ({ onLogout }) => {
 
       {/* Contenido principal */}
       <main style={{
-        maxWidth: '1400px',
+        maxWidth: 'none',
         margin: '0 auto',
         padding: '2rem'
       }}>
