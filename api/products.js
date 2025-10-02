@@ -72,7 +72,7 @@ module.exports = async function handler(req, res) {
               images_url,
               created_at,
               updated_at
-            FROM products 
+            FROM products
             ORDER BY 
               CASE WHEN featured = true THEN 0 ELSE 1 END,
               sort_order ASC,

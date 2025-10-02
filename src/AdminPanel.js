@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import authService from './authService';
+import './AdminPanel.css';
 
 // Categorías válidas con íconos
 const ADMIN_SECTIONS = [
@@ -156,32 +157,60 @@ const AdminPanel = ({ onLogout }) => {
   const [editInStock, setEditInStock] = useState(true);
   const [editImages, setEditImages] = useState([]);
   const [editImageUrl, setEditImageUrl] = useState('');
-  // ✅ 2. LÓGICA PARA ORDENAR LOS PRODUCTOS
-  const sortedProducts = useMemo(() => {
-      let sortableProducts = [...products];
-      if (sortConfig.key) {
-          sortableProducts.sort((a, b) => {
-              if (a[sortConfig.key] < b[sortConfig.key]) {
-                  return sortConfig.direction === 'ascending' ? -1 : 1;
-              }
-              if (a[sortConfig.key] > b[sortConfig.key]) {
-                  return sortConfig.direction === 'ascending' ? 1 : -1;
-              }
-              return 0;
-          });
-      }
-      return sortableProducts;
-  }, [products, sortConfig]);
-    
-  // ✅ 3. FUNCIÓN PARA CAMBIAR EL ORDEN AL HACER CLIC
+
+  // ✅ 2. FUNCIÓN PARA ORDENAR (corregida)
   const requestSort = (key) => {
-      let direction = 'ascending';
-      // Si se hace clic en la misma columna, se invierte la dirección
-      if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-          direction = 'descending';
-      }
-      setSortConfig({ key, direction });
+    let direction = 'ascending';
+    // Si ya está ordenando por esta columna, invierte la dirección
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
   };
+
+  // ✅ 3. useMemo PARA ORDENAR LOS PRODUCTOS (corregido)
+  const sortedProducts = useMemo(() => {
+    let sortableProducts = [...products];
+    if (sortConfig.key) {
+      sortableProducts.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        
+        // Manejar valores null/undefined
+        if (aValue == null) return 1;
+        if (bValue == null) return -1;
+        
+        // SI ES PRECIO, CONVERTIR A NÚMERO
+        if (sortConfig.key === 'price') {
+          aValue = parseFloat(String(aValue).replace(/[^0-9.-]/g, '')) || 0;
+          bValue = parseFloat(String(bValue).replace(/[^0-9.-]/g, '')) || 0;
+        }
+        
+        // SI ES NOMBRE, CONVERTIR A MINÚSCULAS
+        if (sortConfig.key === 'name') {
+          aValue = String(aValue).toLowerCase();
+          bValue = String(bValue).toLowerCase();
+        }
+        
+        // ✅ SI ES STOCK (BOOLEANO)
+        if (sortConfig.key === 'in_stock') {
+          // Convertir booleano a número: true = 1, false = 0
+          aValue = aValue ? 1 : 0;
+          bValue = bValue ? 1 : 0;
+        }
+        
+        // Comparación
+        if (aValue < bValue) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableProducts;
+  }, [products, sortConfig]);
 
   useEffect(() => {
     if (!authService.isAuthenticated()) {
@@ -458,46 +487,47 @@ const AdminPanel = ({ onLogout }) => {
                 ))}
               </div>
             </div>
-                {/* Acceso directo al módulo de ventas */}
-              <div style={{
-                background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
-                borderRadius: '16px',
-                padding: '2rem',
-                marginBottom: '3rem',
-                textAlign: 'center',
-                boxShadow: '0 8px 32px rgba(40, 167, 69, 0.3)'
+
+            {/* Acceso directo al módulo de ventas */}
+            <div style={{
+              background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+              borderRadius: '16px',
+              padding: '2rem',
+              marginBottom: '3rem',
+              textAlign: 'center',
+              boxShadow: '0 8px 32px rgba(40, 167, 69, 0.3)'
+            }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💰</div>
+              <h3 style={{ 
+                color: 'white',
+                fontSize: '1.8rem',
+                marginBottom: '1rem',
+                fontFamily: 'Didot, serif',
+                fontWeight: '400'
               }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💰</div>
-                <h3 style={{ 
-                  color: 'white',
-                  fontSize: '1.8rem',
-                  marginBottom: '1rem',
-                  fontFamily: 'Didot, serif',
-                  fontWeight: '400'
-                }}>
-                  Módulo de Ventas
-                </h3>
-                <p style={{ color: 'white', opacity: 0.9, marginBottom: '2rem', fontSize: '1.1rem' }}>
-                  Registra ventas, gestiona clientes y visualiza estadísticas
-                </p>
-                <button
-                  onClick={() => window.location.href = '/admin/ventas'}
-                  style={{
-                    background: 'white',
-                    color: '#28a745',
-                    border: 'none',
-                    padding: '1rem 2.5rem',
-                    borderRadius: '12px',
-                    fontSize: '1.1rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  🚀 Ir a Ventas
-                </button>
-              </div>
+                Módulo de Ventas
+              </h3>
+              <p style={{ color: 'white', opacity: 0.9, marginBottom: '2rem', fontSize: '1.1rem' }}>
+                Registra ventas, gestiona clientes y visualiza estadísticas
+              </p>
+              <button
+                onClick={() => window.location.href = '/admin/ventas'}
+                style={{
+                  background: 'white',
+                  color: '#28a745',
+                  border: 'none',
+                  padding: '1rem 2.5rem',
+                  borderRadius: '12px',
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                🚀 Ir a Ventas
+              </button>
+            </div>
           </div>
         );
 
@@ -549,6 +579,171 @@ const AdminPanel = ({ onLogout }) => {
               >
                 {showAddForm ? '❌ Cancelar' : '➕ Agregar Producto'}
               </button>
+            </div>
+
+            {/* Controles de ordenamiento */}
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '1.5rem 2rem',
+              marginBottom: '2rem',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+              border: '2px solid rgba(212, 175, 55, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              flexWrap: 'wrap'
+            }}>
+              <span style={{
+                fontWeight: '600',
+                fontSize: '1rem',
+                color: '#333',
+                fontFamily: 'Montserrat, sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                🔍 Ordenar por:
+              </span>
+              
+              <div style={{
+                display: 'flex',
+                gap: '0.75rem',
+                flexWrap: 'wrap'
+              }}>
+                <button
+                  onClick={() => requestSort('id')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '12px',
+                    border: sortConfig.key === 'id' ? '2px solid #d4af37' : '2px solid #e9ecef',
+                    background: sortConfig.key === 'id' 
+                      ? 'linear-gradient(135deg, #d4af37 0%, #c19b26 100%)' 
+                      : 'white',
+                    color: sortConfig.key === 'id' ? 'white' : '#333',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    fontFamily: 'Montserrat, sans-serif',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  ID
+                  {sortConfig.key === 'id' && (
+                    <span>{sortConfig.direction === 'ascending' ? '▲' : '▼'}</span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => requestSort('name')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '12px',
+                    border: sortConfig.key === 'name' ? '2px solid #d4af37' : '2px solid #e9ecef',
+                    background: sortConfig.key === 'name' 
+                      ? 'linear-gradient(135deg, #d4af37 0%, #c19b26 100%)' 
+                      : 'white',
+                    color: sortConfig.key === 'name' ? 'white' : '#333',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    fontFamily: 'Montserrat, sans-serif',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  Nombre
+                  {sortConfig.key === 'name' && (
+                    <span>{sortConfig.direction === 'ascending' ? '▲' : '▼'}</span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => requestSort('price')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '12px',
+                    border: sortConfig.key === 'price' ? '2px solid #d4af37' : '2px solid #e9ecef',
+                    background: sortConfig.key === 'price' 
+                      ? 'linear-gradient(135deg, #d4af37 0%, #c19b26 100%)' 
+                      : 'white',
+                    color: sortConfig.key === 'price' ? 'white' : '#333',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    fontFamily: 'Montserrat, sans-serif',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  Precio
+                  {sortConfig.key === 'price' && (
+                    <span>{sortConfig.direction === 'ascending' ? '▲' : '▼'}</span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => requestSort('in_stock')}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '12px',
+                    border: sortConfig.key === 'in_stock' ? '2px solid #d4af37' : '2px solid #e9ecef',
+                    background: sortConfig.key === 'in_stock' 
+                      ? 'linear-gradient(135deg, #d4af37 0%, #c19b26 100%)' 
+                      : 'white',
+                    color: sortConfig.key === 'in_stock' ? 'white' : '#333',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    fontFamily: 'Montserrat, sans-serif',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  Stock
+                  {sortConfig.key === 'in_stock' && (
+                    <span>{sortConfig.direction === 'ascending' ? '▲' : '▼'}</span>
+                  )}
+                </button>
+              </div>
+              
+              {sortConfig.key && (
+                <button
+                  onClick={() => setSortConfig({ key: null, direction: 'ascending' })}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    borderRadius: '12px',
+                    border: '2px solid #dc3545',
+                    background: 'white',
+                    color: '#dc3545',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    fontFamily: 'Montserrat, sans-serif',
+                    transition: 'all 0.3s ease',
+                    marginLeft: 'auto'
+                  }}
+                >
+                  🔄 Reiniciar orden
+                </button>
+              )}
             </div>
 
             {/* Formulario de agregar producto */}
@@ -605,8 +800,6 @@ const AdminPanel = ({ onLogout }) => {
                         transition: 'all 0.3s ease',
                         outline: 'none'
                       }}
-                      onFocus={(e) => e.target.style.borderColor = '#d4af37'}
-                      onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
                     />
                     
                     <input
@@ -623,8 +816,6 @@ const AdminPanel = ({ onLogout }) => {
                         transition: 'all 0.3s ease',
                         outline: 'none'
                       }}
-                      onFocus={(e) => e.target.style.borderColor = '#d4af37'}
-                      onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
                     />
                   </div>
                   
@@ -693,8 +884,6 @@ const AdminPanel = ({ onLogout }) => {
                       marginBottom: '1.5rem',
                       outline: 'none'
                     }}
-                    onFocus={(e) => e.target.style.borderColor = '#d4af37'}
-                    onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
                   />
 
                   {/* Sección de imágenes */}
@@ -792,7 +981,6 @@ const AdminPanel = ({ onLogout }) => {
                                   justifyContent: 'center',
                                   boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                                 }}
-                                title={`Eliminar imagen ${index + 1}`}
                               >
                                 ×
                               </button>
@@ -920,6 +1108,7 @@ const AdminPanel = ({ onLogout }) => {
                           letterSpacing: '0.5px',
                           borderBottom: '2px solid rgba(230, 227, 212, 0.8)'
                         }}>ID</th>
+                        
                         <th style={{ 
                           padding: '1.5rem 1rem', 
                           textAlign: 'left',
@@ -931,6 +1120,7 @@ const AdminPanel = ({ onLogout }) => {
                           letterSpacing: '0.5px',
                           borderBottom: '2px solid rgba(230, 227, 212, 0.8)'
                         }}>Imagen</th>
+                        
                         <th style={{ 
                           padding: '1.5rem 1rem', 
                           textAlign: 'left',
@@ -942,6 +1132,20 @@ const AdminPanel = ({ onLogout }) => {
                           letterSpacing: '0.5px',
                           borderBottom: '2px solid rgba(230, 227, 212, 0.8)'
                         }}>Nombre</th>
+                        
+                        <th style={{ 
+                          padding: '1.5rem 1rem', 
+                          textAlign: 'left',
+                          fontFamily: 'Montserrat, sans-serif',
+                          fontWeight: '600',
+                          fontSize: '0.9rem',
+                          color: '#333',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          borderBottom: '2px solid rgba(230, 227, 212, 0.8)',
+                          maxWidth: '200px'
+                        }}>Descripción</th>
+                        
                         <th style={{ 
                           padding: '1.5rem 1rem', 
                           textAlign: 'left',
@@ -953,6 +1157,7 @@ const AdminPanel = ({ onLogout }) => {
                           letterSpacing: '0.5px',
                           borderBottom: '2px solid rgba(230, 227, 212, 0.8)'
                         }}>Precio</th>
+                        
                         <th style={{ 
                           padding: '1.5rem 1rem', 
                           textAlign: 'left',
@@ -964,6 +1169,7 @@ const AdminPanel = ({ onLogout }) => {
                           letterSpacing: '0.5px',
                           borderBottom: '2px solid rgba(230, 227, 212, 0.8)'
                         }}>Categoría</th>
+                        
                         <th style={{ 
                           padding: '1.5rem 1rem', 
                           textAlign: 'left',
@@ -975,6 +1181,7 @@ const AdminPanel = ({ onLogout }) => {
                           letterSpacing: '0.5px',
                           borderBottom: '2px solid rgba(230, 227, 212, 0.8)'
                         }}>Stock</th>
+                        
                         <th style={{ 
                           padding: '1.5rem 1rem', 
                           textAlign: 'left',
@@ -989,22 +1196,12 @@ const AdminPanel = ({ onLogout }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {products.map(product => (
+                      {sortedProducts.map(product => (
                         <React.Fragment key={product.id}>
                           <tr style={{
                             borderBottom: '1px solid rgba(230, 227, 212, 0.4)',
                             transition: 'all 0.3s ease',
-                            backgroundColor: editingProductId === product.id ? 'linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%)' : 'transparent'
-                          }}
-                          onMouseOver={(e) => {
-                            if (editingProductId !== product.id) {
-                              e.currentTarget.style.background = 'linear-gradient(135deg, #f3f1eb 0%, #f8f6f0 100%)';
-                            }
-                          }}
-                          onMouseOut={(e) => {
-                            if (editingProductId !== product.id) {
-                              e.currentTarget.style.background = 'transparent';
-                            }
+                            backgroundColor: editingProductId === product.id ? 'rgba(212, 175, 55, 0.1)' : 'transparent'
                           }}>
                             <td style={{ 
                               padding: '1.25rem 1rem', 
@@ -1044,6 +1241,17 @@ const AdminPanel = ({ onLogout }) => {
                             </td>
                             <td style={{ 
                               padding: '1.25rem 1rem',
+                              color: '#666',
+                              fontSize: '0.85rem',
+                              maxWidth: '200px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {product.description || '—'}
+                            </td>
+                            <td style={{ 
+                              padding: '1.25rem 1rem',
                               color: '#333',
                               fontSize: '0.9rem',
                               fontWeight: '600'
@@ -1074,16 +1282,6 @@ const AdminPanel = ({ onLogout }) => {
                                   border: `1px solid ${product.in_stock ? 'rgba(21, 87, 36, 0.2)' : 'rgba(114, 28, 36, 0.2)'}`,
                                   opacity: loading ? 0.5 : 1
                                 }}
-                                onMouseOver={(e) => {
-                                  if (!loading) {
-                                    e.target.style.transform = 'translateY(-2px)';
-                                    e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-                                  }
-                                }}
-                                onMouseOut={(e) => {
-                                  e.target.style.transform = 'translateY(0)';
-                                  e.target.style.boxShadow = 'none';
-                                }}
                               >
                                 {product.in_stock ? '✅ En Stock' : '❌ Sin Stock'}
                               </button>
@@ -1110,18 +1308,6 @@ const AdminPanel = ({ onLogout }) => {
                                     minWidth: '80px',
                                     opacity: loading ? 0.5 : 1
                                   }}
-                                  onMouseOver={(e) => {
-                                    if (!loading) {
-                                      e.target.style.transform = 'translateY(-2px)';
-                                      e.target.style.boxShadow = editingProductId === product.id 
-                                        ? '0 4px 12px rgba(220, 53, 69, 0.3)'
-                                        : '0 4px 12px rgba(0, 123, 255, 0.3)';
-                                    }
-                                  }}
-                                  onMouseOut={(e) => {
-                                    e.target.style.transform = 'translateY(0)';
-                                    e.target.style.boxShadow = 'none';
-                                  }}
                                 >
                                   {editingProductId === product.id ? '❌ Cancelar' : '✏️ Editar'}
                                 </button>
@@ -1143,16 +1329,6 @@ const AdminPanel = ({ onLogout }) => {
                                     minWidth: '80px',
                                     opacity: (loading || editingProductId === product.id) ? 0.5 : 1
                                   }}
-                                  onMouseOver={(e) => {
-                                    if (!loading && editingProductId !== product.id) {
-                                      e.target.style.transform = 'translateY(-2px)';
-                                      e.target.style.boxShadow = '0 4px 12px rgba(220, 53, 69, 0.3)';
-                                    }
-                                  }}
-                                  onMouseOut={(e) => {
-                                    e.target.style.transform = 'translateY(0)';
-                                    e.target.style.boxShadow = 'none';
-                                  }}
                                 >
                                   🗑️ Eliminar
                                 </button>
@@ -1163,7 +1339,7 @@ const AdminPanel = ({ onLogout }) => {
                           {/* Formulario de edición inline */}
                           {editingProductId === product.id && (
                             <tr style={{ background: 'white' }}>
-                              <td colSpan="7">
+                              <td colSpan="8">
                                 <div style={{
                                   padding: '2.5rem',
                                   border: '2px solid #d4af37',
@@ -1226,8 +1402,6 @@ const AdminPanel = ({ onLogout }) => {
                                               outline: 'none',
                                               transition: 'all 0.3s ease'
                                             }}
-                                            onFocus={(e) => e.target.style.borderColor = '#d4af37'}
-                                            onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
                                           />
                                           
                                           <input
@@ -1243,8 +1417,6 @@ const AdminPanel = ({ onLogout }) => {
                                               outline: 'none',
                                               transition: 'all 0.3s ease'
                                             }}
-                                            onFocus={(e) => e.target.style.borderColor = '#d4af37'}
-                                            onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
                                           />
                                           
                                           <select
@@ -1301,8 +1473,6 @@ const AdminPanel = ({ onLogout }) => {
                                               outline: 'none',
                                               transition: 'all 0.3s ease'
                                             }}
-                                            onFocus={(e) => e.target.style.borderColor = '#d4af37'}
-                                            onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
                                           />
                                         </div>
                                       </div>
@@ -1465,8 +1635,6 @@ const AdminPanel = ({ onLogout }) => {
             )}
           </div>
         );
-
-      
 
       case 'reports':
         return (
@@ -1677,18 +1845,6 @@ const AdminPanel = ({ onLogout }) => {
                     ? '0 4px 15px rgba(212, 175, 55, 0.3)' 
                     : 'none'
                 }}
-                onMouseOver={(e) => {
-                  if (activeSection !== section.id) {
-                    e.target.style.background = 'rgba(212, 175, 55, 0.1)';
-                    e.target.style.borderColor = '#d4af37';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (activeSection !== section.id) {
-                    e.target.style.background = 'transparent';
-                    e.target.style.borderColor = 'rgba(51, 51, 51, 0.2)';
-                  }
-                }}
               >
                 <span style={{ fontSize: '1.1rem' }}>{section.icon}</span>
                 <span className="nav-text" style={{ 
@@ -1739,7 +1895,7 @@ const AdminPanel = ({ onLogout }) => {
             }}></div>
           </button>
 
-            {/* Botón especial para Ventas */}
+          {/* Botón especial para Ventas */}
           <button
             onClick={() => window.location.href = '/admin/ventas'}
             style={{
@@ -1783,14 +1939,6 @@ const AdminPanel = ({ onLogout }) => {
               gap: '0.5rem',
               textTransform: 'uppercase',
               letterSpacing: '0.5px'
-            }}
-            onMouseOver={(e) => {
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 4px 15px rgba(108, 117, 125, 0.3)';
-            }}
-            onMouseOut={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = 'none';
             }}
           >
             <span>🚪</span>
@@ -1847,7 +1995,7 @@ const AdminPanel = ({ onLogout }) => {
 
       {/* Contenido principal */}
       <main style={{
-        maxWidth: 'none',
+        maxWidth: '1400px',
         margin: '0 auto',
         padding: '2rem'
       }}>
@@ -1879,14 +2027,6 @@ const AdminPanel = ({ onLogout }) => {
                 cursor: 'pointer',
                 fontWeight: '500',
                 transition: 'all 0.3s ease'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 4px 12px rgba(220, 53, 69, 0.3)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = 'none';
               }}
             >
               ✕ Cerrar

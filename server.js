@@ -41,6 +41,7 @@ const adaptHandler = (handler) => {
 const authHandler = require('./api/auth');
 const productsHandler = require('./api/products');
 const adminProductsHandler = require('./api/admin/products');
+const customersHandler = require('./api/customers');
 const testDbHandler = require('./test-db');
 const testAuthHandler = require('./api/test-auth');
 
@@ -49,6 +50,7 @@ app.post('/api/auth', adaptHandler(authHandler));
 app.get('/api/products', adaptHandler(productsHandler));
 app.put('/api/products', adaptHandler(productsHandler));
 app.all('/api/admin/products', adaptHandler(adminProductsHandler));
+app.all('/api/customers', adaptHandler(customersHandler));
 app.get('/api/test-db', adaptHandler(testDbHandler));
 app.get('/api/test-auth', adaptHandler(testAuthHandler));
 
