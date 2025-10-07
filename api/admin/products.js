@@ -115,7 +115,8 @@ module.exports = async function handler(req, res) {
               CASE WHEN in_stock THEN 'En Stock' ELSE 'Sin Stock' END as stock_status,
               created_at,
               updated_at
-            FROM products 
+            FROM products
+            WHERE is_active = true
             ORDER BY category, name
           `);
           
@@ -252,25 +253,27 @@ module.exports = async function handler(req, res) {
           });
 
       case 'DELETE':
-        const { id } = req.query;
+        const urlParts = req.url.split('/');
+        const productId = urlParts[urlParts.length - 1];
         
-        if (!id) {
-          return res.status(400).json({ error: 'ID del producto es requerido' });
-        }
+         if (!productId || isNaN(parseInt(productId))) {
+            return res.status(400).json({ error: 'ID de producto inválido en la URL' });
+          }
 
-        const deleteResult = await query(
-          'DELETE FROM products WHERE id = $1 RETURNING id, name',
-          [parseInt(id)]
-        );
+          // En lugar de borrar, actualizamos
+          const softDeleteResult = await query(
+            'UPDATE products SET is_active = false WHERE id = $1 RETURNING id, name',
+            [parseInt(productId)]
+          );
 
-        if (deleteResult.rows.length === 0) {
-          return res.status(404).json({ error: 'Producto no encontrado' });
-        }
+          if (softDeleteResult.rows.length === 0) {
+              return res.status(404).json({ error: 'Producto no encontrado' });
+          }
 
-        return res.status(200).json({ 
-          message: 'Producto eliminado exitosamente',
-          deletedProduct: deleteResult.rows[0]
-        });
+          return res.status(200).json({ 
+              message: 'Producto desactivado exitosamente',
+              product: softDeleteResult.rows[0]
+          });
 
       default:
         res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);

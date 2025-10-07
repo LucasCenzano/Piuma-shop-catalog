@@ -271,7 +271,7 @@ class AuthService {
 
   async deleteProduct(productId) {
     try {
-      const response = await this.authenticatedFetch(`${API_BASE_URL}/api/admin/products?id=${productId}`, {
+      const response = await this.authenticatedFetch(`${API_BASE_URL}/api/admin/products/${productId}`, {
         method: 'DELETE',
       });
 

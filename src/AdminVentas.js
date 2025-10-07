@@ -75,7 +75,7 @@ const AdminVentas = () => {
     } finally {
       setLoading(false);
     }
-  }, [salesFilter.page, salesFilter.limit, salesFilter.start_date, salesFilter.end_date, salesFilter.payment_method]);
+  }, [salesFilter]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -106,12 +106,30 @@ const AdminVentas = () => {
   },  [activeTab, loadSales, loadStats]);
 
   // ===== FUNCIONES DE MANEJO DE ESTADO =====
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setSalesFilter(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleNewSaleChange = (field, value) => {
     setNewSale(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  const clearFilters = () => {
+    setSalesFilter({
+      page: 1,
+      limit: 10,
+      start_date: '',
+      end_date: '',
+      payment_method: ''
+    });
+    // loadSales() se disparará automáticamente por el cambio en el estado
   };
 
   const handleNewItemChange = (field, value) => {
@@ -718,6 +736,44 @@ const AdminVentas = () => {
       }}>
         📊 Lista de Ventas
       </h3>
+      <div style={{
+        display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '2rem',
+        padding: '1.5rem', background: '#f8f9fa', borderRadius: '12px'
+      }}>
+        <input
+          type="date"
+          name="start_date"
+          value={salesFilter.start_date}
+          onChange={handleFilterChange}
+          style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #ccc' }}
+        />
+        <input
+          type="date"
+          name="end_date"
+          value={salesFilter.end_date}
+          onChange={handleFilterChange}
+          style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #ccc' }}
+        />
+        <select
+          name="payment_method"
+          value={salesFilter.payment_method}
+          onChange={handleFilterChange}
+          style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #ccc' }}
+        >
+          <option value="">Todos los métodos</option>
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+        </select>
+        <button
+          onClick={clearFilters}
+          style={{
+            padding: '0.75rem 1.5rem', borderRadius: '8px', border: 'none',
+            background: '#6c757d', color: 'white', cursor: 'pointer'
+          }}
+        >
+          Limpiar Filtros
+        </button>
+      </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: '#666' }}>
