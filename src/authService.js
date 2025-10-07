@@ -1,9 +1,9 @@
 // authService.js - Versión corregida para desarrollo y producción
 import dataService from './dataService'; // 👈 1. Importa el dataService
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '' // En producción usa URLs relativas
-  : ''; // En desarrollo también usa URLs relativas (gracias al proxy)
+// ✅ CÓDIGO CORRECTO
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+ 
 
 class AuthService {
   constructor() {
@@ -119,31 +119,39 @@ class AuthService {
     }
   }
 
-  // Verificar si el token ha expirado
-  isTokenExpired() {
-    const token = this.getToken();
-    if (!token) return true;
+      // ✅ CÓDIGO CORRECTO
+    isTokenExpired() {
+      const token = this.getToken();
+      if (!token) return true;
 
-    try {
-      let tokenData = token;
-      
-      if (token.startsWith('bearer_')) {
-        tokenData = token.substring(7);
+      try {
+        // 1. Separar el token en sus 3 partes
+        const payloadBase64 = token.split('.')[1];
+        
+        // 2. Si no tiene una parte de payload, es inválido
+        if (!payloadBase64) {
+          return true;
+        }
+
+        // 3. Decodificar SOLO la parte del payload
+        const decodedJson = atob(payloadBase64);
+        
+        // 4. Convertir el JSON decodificado en un objeto
+        const decodedPayload = JSON.parse(decodedJson);
+
+        // 5. Comparar la fecha de expiración (exp) con la fecha actual
+        // La fecha 'exp' está en segundos, Date.now() en milisegundos.
+        if (decodedPayload.exp * 1000 < Date.now()) {
+          console.log('⏰ Token expirado');
+          return true;
+        }
+
+        return false;
+      } catch (error) {
+        console.error('❌ Error verificando token:', error);
+        return true; // Si hay error al decodificar, se asume que es inválido
       }
-      
-      const decoded = JSON.parse(atob(tokenData));
-      
-      if (decoded.exp && decoded.exp < Date.now()) {
-        console.log('⏰ Token expirado');
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('❌ Error verificando token:', error);
-      return true;
     }
-  }
 
   // Realizar petición autenticada con mejor manejo de errores
   async authenticatedFetch(url, options = {}) {

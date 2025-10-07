@@ -1,19 +1,27 @@
+
 {
-  "functions": {
-    "api/auth.js": {
-      "maxDuration": 10
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
     },
-    "api/products.js": {
-      "maxDuration": 10
-    },
-    "api/admin/products.js": {
-      "maxDuration": 10
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
     }
-  },
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "destination": "/server.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

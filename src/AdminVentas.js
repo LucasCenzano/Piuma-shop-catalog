@@ -1,6 +1,8 @@
 // src/AdminVentas.js - Panel de Ventas completo e independiente
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; 
 import authService from './authService';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+
 
 const AdminVentas = () => {
   const [activeTab, setActiveTab] = useState('new-sale');
@@ -38,14 +40,6 @@ const AdminVentas = () => {
     payment_method: ''
   });
 
-  useEffect(() => {
-    loadProducts();
-    if (activeTab === 'sales-list') {
-      loadSales();
-    } else if (activeTab === 'statistics') {
-      loadStats();
-    }
-  }, [activeTab]);
 
   // ===== FUNCIONES DE CARGA DE DATOS =====
 
@@ -59,11 +53,11 @@ const AdminVentas = () => {
     }
   };
 
-  const loadSales = async () => {
+  const loadSales = useCallback(async () => {
     try {
       setLoading(true);
       const response = await authService.authenticatedFetch(
-        `/api/sales?page=${salesFilter.page}&limit=${salesFilter.limit}` +
+        `${API_BASE_URL}/api/sales?page=${salesFilter.page}&limit=${salesFilter.limit}` + // 👈 Corregido
         `${salesFilter.start_date ? '&start_date=' + salesFilter.start_date : ''}` +
         `${salesFilter.end_date ? '&end_date=' + salesFilter.end_date : ''}` +
         `${salesFilter.payment_method ? '&payment_method=' + salesFilter.payment_method : ''}`
@@ -81,12 +75,12 @@ const AdminVentas = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [salesFilter.page, salesFilter.limit, salesFilter.start_date, salesFilter.end_date, salesFilter.payment_method]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await authService.authenticatedFetch('/api/sales-stats');
+      const response = await authService.authenticatedFetch(`${API_BASE_URL}/api/sales-stats`); // 👈 Corregido
       
       if (response.ok) {
         const statsData = await response.json();
@@ -100,7 +94,16 @@ const AdminVentas = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadProducts();
+    if (activeTab === 'sales-list') {
+      loadSales();
+    } else if (activeTab === 'statistics') {
+      loadStats();
+    }
+  },  [activeTab, loadSales, loadStats]);
 
   // ===== FUNCIONES DE MANEJO DE ESTADO =====
 
@@ -186,13 +189,13 @@ const AdminVentas = () => {
         total_amount: calculateTotal()
       };
 
-      const response = await authService.authenticatedFetch('/api/sales', {
+      const response = await authService.authenticatedFetch(`${API_BASE_URL}/api/sales`, { // 👈 Corregido
         method: 'POST',
         body: JSON.stringify(saleData)
       });
 
       if (response.ok) {
-        const result = await response.json();
+        await response.json(); 
         setSuccessMessage('¡Venta registrada exitosamente!');
         
         // Resetear formulario
@@ -231,7 +234,7 @@ const AdminVentas = () => {
 
     try {
         setLoading(true);
-        const response = await authService.authenticatedFetch(`/api/sales?id=${saleId}`, {
+        const response = await authService.authenticatedFetch(`${API_BASE_URL}/api/sales?id=${saleId}`, { // 👈 Corregido
         method: 'DELETE'
         });
 
@@ -764,6 +767,7 @@ const AdminVentas = () => {
                 <th style={{ padding: '1rem', textAlign: 'right', fontWeight: '600' }}>Total</th>
                 <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600' }}>Items</th>
                 <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600' }}>Fecha</th>
+                <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -783,6 +787,22 @@ const AdminVentas = () => {
                   <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
                     {sale.customer_phone && <div>📞 {sale.customer_phone}</div>}
                     {sale.customer_email && <div>✉️ {sale.customer_email}</div>}
+                  </td>
+                  <td style={{ padding: '1rem', textAlign: 'center' }}>
+                    <button
+                      onClick={() => handleDeleteSale(sale.id)}
+                      style={{
+                        background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
+                        color: 'white',
+                        border: 'none',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem'
+                      }}
+                    >
+                      🗑️ Eliminar
+                    </button>
                   </td>
                   <td style={{ padding: '1rem', textAlign: 'center' }}>
                     <span style={{

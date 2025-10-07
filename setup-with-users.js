@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config({ path: '.env.local' });
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 // Configuración de conexión a Neon
 const pool = new Pool({
@@ -116,23 +117,32 @@ async function setupDatabase() {
       ['admin']
     );
 
+    // setup-with-users.js
+
+    // ... (dentro de setupDatabase)
+
     if (existingUser.rows.length === 0) {
-      // Crear hash de la contraseña
-      const defaultPassword = 'Piuma2025!';
-      const saltRounds = 12;
-      const passwordHash = await bcrypt.hash(defaultPassword, saltRounds);
+      // Ya no generes una contraseña aleatoria
+      const adminUsername = process.env.ADMIN_USERNAME;
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const passwordHash = process.env.ADMIN_PASSWORD_HASH;
+
+      if (!adminUsername || !adminEmail || !passwordHash) {
+        console.error('❌ Faltan las variables de entorno para el admin: ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD_HASH');
+        // Salir o manejar el error
+        return;
+      }
 
       await client.query(`
         INSERT INTO users (username, email, password_hash, role)
         VALUES ($1, $2, $3, $4)
-      `, ['admin', 'admin@piuma.com', passwordHash, 'admin']);
+      `, [adminUsername, adminEmail, passwordHash, 'admin']);
 
-      console.log('✅ Usuario administrador creado');
-      console.log('🔑 Credenciales por defecto:');
-      console.log('   Usuario: admin');
-      console.log('   Contraseña: Piuma2025!');
-      console.log('');
-      console.log('⚠️  IMPORTANTE: Cambia estas credenciales después del primer login');
+      console.log('========================================');
+      console.log('✅ Usuario administrador creado exitosamente desde .env.local');
+      console.log(`Usuario: ${adminUsername}`);
+      console.log('========================================');
+      
     } else {
       console.log('ℹ️  Usuario administrador ya existe');
     }

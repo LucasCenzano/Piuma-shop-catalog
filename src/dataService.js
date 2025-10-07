@@ -2,7 +2,9 @@
 
 class DataService {
   constructor() {
-    this.apiUrl = '/api/products';
+    const baseURL = process.env.REACT_APP_API_URL || '';
+    this.apiUrl = `${baseURL}/api/products`;
+    
     this.cache = null;
     this.cacheTime = null;
     this.cacheDuration = 10 * 60 * 1000; // ✅ Aumentado a 10 minutos para mejor rendimiento
