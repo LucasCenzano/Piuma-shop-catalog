@@ -18,40 +18,54 @@ async function query(text, params) {
   }
 }
 
-// Función para validar el token (igual que en productos)
+// api/sales.js y api/sales-stats.js
+
+// 👇 REEMPLAZA TODA TU FUNCIÓN "validateToken" CON ESTA VERSIÓN MEJORADA
+
 function validateToken(authHeader) {
-  if (!authHeader) {
-    return { valid: false, error: 'No se proporcionó token' };
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { valid: false, error: 'Formato de token inválido o ausente. Se esperaba "Bearer {token}".' };
   }
 
   try {
-    let token = authHeader;
+    const token = authHeader.substring(7); // Extrae el token después de 'Bearer '
     
-    if (authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    } else if (authHeader.startsWith('bearer_')) {
-      token = authHeader;
-    }
-
+    // Tu token no es un JWT estándar, así que continuamos con tu lógica de decodificación
+    // NOTA: Esta decodificación no es segura para producción sin una verificación de firma.
     if (token.startsWith('bearer_')) {
-      const tokenData = token.substring(7);
-      const decoded = JSON.parse(Buffer.from(tokenData, 'base64').toString());
-      
-      if (decoded.exp && decoded.exp < Date.now()) {
-        return { valid: false, error: 'Token expirado' };
-      }
-
-      if (decoded.role !== 'admin') {
-        return { valid: false, error: 'Sin permisos de administrador' };
-      }
-
-      return { valid: true, user: decoded };
+        const tokenData = token.substring(7);
+        const decoded = JSON.parse(Buffer.from(tokenData, 'base64').toString());
+         if (decoded.exp && decoded.exp < Date.now()) {
+            return { valid: false, error: 'Token expirado' };
+        }
+        if (decoded.role !== 'admin') {
+            return { valid: false, error: 'Sin permisos de administrador' };
+        }
+        return { valid: true, user: decoded };
+    }
+    
+    // Si el token es un JWT estándar
+    const payloadBase64 = token.split('.')[1];
+    if (!payloadBase64) {
+      return { valid: false, error: 'Token JWT inválido (sin payload)' };
     }
 
-    return { valid: false, error: 'Formato de token inválido' };
+    const decodedJson = atob(payloadBase64);
+    const decodedPayload = JSON.parse(decodedJson);
+
+    if (decodedPayload.exp * 1000 < Date.now()) {
+      return { valid: false, error: 'Token expirado' };
+    }
+
+    if (decodedPayload.role !== 'admin') {
+      return { valid: false, error: 'Sin permisos de administrador' };
+    }
+
+    return { valid: true, user: decodedPayload };
+
   } catch (error) {
     console.error('Error validando token:', error);
-    return { valid: false, error: 'Token inválido' };
+    return { valid: false, error: 'Token dañado o inválido' };
   }
 }
 

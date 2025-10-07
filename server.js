@@ -208,7 +208,7 @@ app.get('/api/products', async (req, res) => {
     }
 
     const result = await query(
-      'SELECT * FROM products ORDER BY category, name'
+      'SELECT * FROM products WHERE is_active = true ORDER BY category, name'
     );
     
     const products = result.rows.map(p => {
@@ -235,7 +235,7 @@ app.get('/api/admin/products',
   async (req, res) => {
     try {
       const result = await query(
-        'SELECT * FROM products ORDER BY category, name'
+        'SELECT * FROM products WHERE is_active = true ORDER BY category, name'
       );
       
       const products = result.rows.map(p => {
@@ -374,7 +374,7 @@ app.put('/api/admin/products/:id',
   }
 );
 
-// Eliminar producto
+// Eliminar producto (versión corregida con "soft delete")
 app.delete('/api/admin/products/:id',
   authenticate,
   requireRole('admin'),
@@ -382,8 +382,9 @@ app.delete('/api/admin/products/:id',
     try {
       const { id } = req.params;
 
+      // Cambiamos DELETE por UPDATE para hacer un "soft delete"
       const result = await query(
-        'DELETE FROM products WHERE id = $1 RETURNING id, name',
+        'UPDATE products SET is_active = false WHERE id = $1 RETURNING id, name',
         [parseInt(id)]
       );
 
@@ -391,17 +392,44 @@ app.delete('/api/admin/products/:id',
         return res.status(404).json({ error: 'Producto no encontrado' });
       }
 
+      // Cambiamos el mensaje de éxito
       res.json({ 
-        message: 'Producto eliminado',
-        deletedProduct: result.rows[0]
+        message: 'Producto desactivado exitosamente',
+        deactivatedProduct: result.rows[0]
       });
 
     } catch (error) {
-      console.error('Error eliminando producto:', error);
+      console.error('Error desactivando producto:', error);
+      
+      // ✅ AÑADIMOS MANEJO DE ERROR ESPECÍFICO
+      // Si el error es por una foreign key (código 23503 de PostgreSQL)...
+      if (error.code === '23503') {
+        // Devolvemos un error 409 Conflict, que es más descriptivo
+        return res.status(409).json({ 
+          error: 'Este producto no se puede modificar porque está asociado a una o más ventas.' 
+        });
+      }
+
+      // Para cualquier otro error, mantenemos el 500
       res.status(500).json({ error: 'Error interno del servidor' });
     }
   }
 );
+
+// ========== RUTAS DE VENTAS (PROTEGIDAS) ==========
+
+
+console.log('🔗 Conectando rutas de ventas y estadísticas...');
+const salesHandler = require('./api/sales.js');
+const salesStatsHandler = require('./api/sales-stats.js');
+
+// Cualquier petición a /api/sales será manejada por el archivo api/sales.js
+app.all('/api/sales', salesHandler);
+
+// Cualquier petición a /api/sales-stats será manejada por api/sales-stats.js
+app.all('/api/sales-stats', salesStatsHandler);
+
+console.log('✅ Rutas de ventas y estadísticas conectadas.');
 
 // ========== UTILIDADES ==========
 

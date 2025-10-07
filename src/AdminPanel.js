@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import authService from './authService';
 import './AdminPanel.css';
+import { Link } from 'react-router-dom';
 
 // Categorías válidas con íconos
 const ADMIN_SECTIONS = [
@@ -318,7 +319,7 @@ const AdminPanel = ({ onLogout }) => {
   };
 
   const handleDeleteProduct = async (productId) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+    if (!window.confirm('¿Estás seguro de que quieres DESACTIVAR este producto? Ya no será visible en el catálogo.')) {
       return;
     }
 
@@ -326,10 +327,10 @@ const AdminPanel = ({ onLogout }) => {
       setLoading(true);
       await authService.deleteProduct(productId);
       await loadProducts();
-      alert('Producto eliminado exitosamente');
+      alert('Producto DESACTIVADO exitosamente');
     } catch (error) {
-      console.error('Error eliminando producto:', error);
-      setError(`Error eliminando producto: ${error.message}`);
+      console.error('Error desactivando  producto:', error);
+      setError(`Error desactivando  producto: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -510,23 +511,26 @@ const AdminPanel = ({ onLogout }) => {
               <p style={{ color: 'white', opacity: 0.9, marginBottom: '2rem', fontSize: '1.1rem' }}>
                 Registra ventas, gestiona clientes y visualiza estadísticas
               </p>
-              <button
-                onClick={() => window.location.href = '/admin/ventas'}
-                style={{
-                  background: 'white',
-                  color: '#28a745',
-                  border: 'none',
-                  padding: '1rem 2.5rem',
-                  borderRadius: '12px',
-                  fontSize: '1.1rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                🚀 Ir a Ventas
-              </button>
+              <Link to="/admin/ventas" style={{ textDecoration: 'none' }}>
+                <button
+                  style={{
+                    background: 'white',
+                    color: '#28a745',
+                    // ... los mismos estilos que ya tenías
+                    border: 'none',
+                    padding: '1rem 2.5rem',
+                    borderRadius: '12px',
+                    fontSize: '1.1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.3s ease'
+                  }}
+                  // Ya no necesita el onClick
+                >
+                  🚀 Ir a Ventas
+                </button>
+              </Link>
             </div>
           </div>
         );
@@ -1330,7 +1334,7 @@ const AdminPanel = ({ onLogout }) => {
                                     opacity: (loading || editingProductId === product.id) ? 0.5 : 1
                                   }}
                                 >
-                                  🗑️ Eliminar
+                                  🗑️ Desactivar
                                 </button>
                               </div>
                             </td>

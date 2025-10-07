@@ -1,25 +1,27 @@
-// src/App.js - Aplicación principal con routing actualizado para ventas
+// src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import MainApp from './MainApp'; // Catálogo principal
-import AdminApp from './AdminApp'; // Panel de administración principal
-import AdminVentas from './AdminVentas'; // Panel de ventas independiente
+import MainApp from './MainApp';
+import AdminApp from './AdminApp';
+import AdminVentas from './AdminVentas';
+import ProtectedRoute from './ProtectedRoute'; // ✅ 1. IMPORTAR EL GUARDIÁN
 import './styles.css';
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Ruta principal del catálogo */}
         <Route path="/" element={<MainApp />} />
         
-        {/* Ruta principal de administración */}
+        {/* AdminApp ya maneja su propia lógica de login/panel */}
         <Route path="/admin" element={<AdminApp />} />
         
-        {/* Ruta específica para el módulo de ventas */}
-        <Route path="/admin/ventas" element={<AdminVentas />} />
+        {/* ✅ 2. PROTEGER LA RUTA DE VENTAS */}
+        <Route 
+          path="/admin/ventas" 
+          element={<ProtectedRoute component={AdminVentas} />} 
+        />
         
-        {/* Redireccionar rutas no encontradas */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

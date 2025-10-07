@@ -171,7 +171,7 @@ class AuthService {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': currentToken,
+        'Authorization': `Bearer ${currentToken}`,
         ...options.headers,
       },
     };
