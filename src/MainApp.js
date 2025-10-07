@@ -7,6 +7,8 @@ import dataService from './dataService';
 import Footer from './Footer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'; 
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
+import Pagination from './Pagination';
+import ContactBanner from './ContactBanner';
 
 function MainApp() {
     const [selectedCategory, setSelectedCategory] = useState('Todos');
@@ -21,6 +23,8 @@ function MainApp() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 9; // Muestra 9 productos por página
     // ✅ Estado para el progreso de carga
     const [loadingProgress, setLoadingProgress] = useState(0);
 
@@ -84,6 +88,9 @@ function MainApp() {
             }, 300);
         }
     };
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedCategory, searchTerm]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -168,24 +175,26 @@ function MainApp() {
     };
 
     // Lógica de filtrado del catálogo
-    const displayBags = bagsData.filter(bag => {
+    const filteredBags = bagsData.filter(bag => {
         const matchesCategory = selectedCategory === 'Todos' || bag.category === selectedCategory;
-        
         if (searchTerm === '') {
             return matchesCategory;
-        } 
-        
+        }
         const lowercasedSearchTerm = searchTerm.toLowerCase();
         const matchesName = bag.name.toLowerCase().includes(lowercasedSearchTerm);
         const matchesDescription = bag.description && bag.description.toLowerCase().includes(lowercasedSearchTerm);
         const matchesSearchTerm = matchesName || matchesDescription;
-        
         return matchesSearchTerm;
     });
 
-    // ✅ Función para refrescar datos manualmente
+    // Segundo, calculamos la paginación a partir de los productos ya filtrados
+    const totalPages = Math.ceil(filteredBags.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItemsOnPage = filteredBags.slice(indexOfFirstItem, indexOfLastItem);
+
     const handleRefresh = () => {
-        dataService.invalidateCache(); // Limpiar cache
+        dataService.invalidateCache();
         loadProducts();
     };
 
@@ -376,11 +385,19 @@ function MainApp() {
             
 
             <main>
-                <Catalog 
-                    bags={displayBags} 
-                    openModal={openModal} 
-                    selectedCategory={selectedCategory} 
+                 <Catalog
+                    bags={currentItemsOnPage} // ✅ PASO 5: PASAR SOLO LOS ITEMS DE LA PÁGINA ACTUAL
+                    openModal={openModal}
+                    selectedCategory={selectedCategory}
                 />
+                
+                {/* ✅ PASO 6: AÑADIR EL COMPONENTE DE PAGINACIÓN */}
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={(page) => setCurrentPage(page)}
+                />
+                 <ContactBanner />
             </main>
             
             {modalImage && <ImageModal src={modalImage.src} alt={modalImage.alt} closeModal={closeModal} />}
