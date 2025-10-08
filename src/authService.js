@@ -249,8 +249,7 @@ class AuthService {
       if (!productData.id) {
         throw new Error('ID del producto es requerido');
       }
-      
-      const response = await this.authenticatedFetch(`${API_BASE_URL}/api/admin/products`, {
+        const response = await this.authenticatedFetch(`${API_BASE_URL}/api/admin/products/${productData.id}`, {
         method: 'PUT',
         body: JSON.stringify(productData),
       });
